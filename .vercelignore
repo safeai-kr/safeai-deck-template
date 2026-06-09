@@ -1,0 +1,11 @@
+.git
+.gitignore
+.vercel
+.omc
+.DS_Store
+docs/.bkit-memory.json
+docs/.pdca-status.json
+**/.bkit-memory.json
+**/.pdca-status.json
+CLAUDE.md
+AGENTS.md

@@ -6,6 +6,9 @@
 .vscode/
 .idea/
 
+# Vercel
+.vercel/
+
 # bkit / PDCA internal state
 docs/.bkit-memory.json
 docs/.pdca-status.json
