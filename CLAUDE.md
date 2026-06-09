@@ -92,6 +92,22 @@ padding: var(--safe-top) var(--pad) var(--safe-bottom)
   설정하므로 **용지 크기를 손대지 말 것**. 슬라이드당 1페이지로 깔끔히 나옵니다.
 - **커버/일러스트 이미지**: 반드시 `object-fit:contain` — `cover`는 좌우 잘림 발생.
 
+### `.no-print` — PDF 탈출구
+PDF-unsafe CSS는 원칙적으로 금지하되, **화면 연출용으로 꼭 써야 하는 장식 요소**는
+`class="no-print"`를 붙여 인쇄 시에만 숨긴다 (deck.html에 `@media print{.no-print{display:none!important}}` 내장).
+대상: `mask-image`/`-webkit-mask-image`(마스크 무시되고 배경 통째 인쇄), mesh·grid `background-image`(격자 인쇄),
+장식용 glow `box-shadow`(사각 음영으로 렌더), `background-clip:text` 그라디언트(깨짐 → 단색 fallback 별도 제공).
+> 콘텐츠(텍스트·핵심 도형)에는 쓰지 말 것 — PDF에서 사라진다. 어디까지나 장식 전용.
+
+## 페이지 번호 부여 규칙 (`.pg`)
+
+- **커버** (`data-label`에 "커버/Cover"): 페이지 번호 **없음**.
+- **섹션 디바이더** (다크 전체배경 + 짧은 타이틀만): 번호 **없음** (로고와 겹침).
+- **전면 이미지/클로징** 류: 번호 없음.
+- 우측 상단에 **버튼(데모 등)이 오는 슬라이드**: `.logo-wrap` 로고 **제거** (겹침 방지).
+- 그 외 일반 콘텐츠 슬라이드: 커버를 01로 세고 **02부터** 순번 부여.
+- 다크 배경 슬라이드의 번호는 `.pg pg-light` (흰색).
+
 ## 슬라이드 추가 시
 
 ```html

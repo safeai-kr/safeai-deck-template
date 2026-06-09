@@ -296,6 +296,12 @@ body { font-family: var(--font); -webkit-font-smoothing:antialiased; }
   pointer-events:none;
 }
 
+/* ─── PDF escape hatch ───────────────────────────────────────
+   화면엔 두고 인쇄(PDF)에선 숨길 장식 요소에 class="no-print".
+   mask-image, mesh/grid background-image, glow box-shadow,
+   background-clip:text 그라디언트처럼 PDF에서 깨지는 효과 전용.
+   (deck-stage.js의 인쇄 규칙과 독립적으로 동작) */
+@media print { .no-print { display:none !important; } }
 
 </style>
 </head>

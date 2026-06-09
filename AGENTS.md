@@ -64,6 +64,16 @@ padding: var(--safe-top) var(--pad) var(--safe-bottom)   /* 76px 52px 52px */
 
 - **PDF**: Cmd+P → PDF로 저장 → 용지 크기 손대지 말 것 (1280×720 자동). 슬라이드당 1페이지.
 - **커버/일러스트**: `object-fit:contain` (cover는 잘림).
+- **`.no-print` 탈출구**: PDF에서 깨지는 장식 요소(`mask-image`, mesh/grid `background-image`,
+  glow `box-shadow`, `background-clip:text` 그라디언트)는 화면 연출용으로만 쓰고 `class="no-print"`를
+  붙여 인쇄 시 숨긴다 (deck.html에 `@media print{.no-print{display:none!important}}` 내장).
+  **콘텐츠엔 쓰지 말 것** — PDF에서 사라짐. 장식 전용.
+
+## 페이지 번호 부여 규칙 (`.pg`)
+
+- 커버(`data-label`에 "커버/Cover") · 섹션 디바이더(다크 전체+짧은 타이틀) · 전면이미지/클로징 → 번호 **없음**.
+- 우측 상단에 버튼(데모 등)이 오는 슬라이드 → `.logo-wrap` 로고 **제거**(겹침 방지).
+- 그 외 콘텐츠 슬라이드 → 커버를 01로 세고 **02부터** 순번. 다크 배경 번호는 `.pg pg-light`(흰색).
 
 ## 슬라이드 추가 템플릿
 

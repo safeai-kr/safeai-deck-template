@@ -151,24 +151,28 @@ Feather Icons 스타일 인라인 SVG만 사용.
 
 ## 6. 슬라이드별 사용 가이드
 
-### 페이지 번호 없는 슬라이드
-- `01` (Cover Dark) — 페이지 번호 없음
-- `02` (Cover Light) — 페이지 번호 없음
-- `04` (Section Divider) — 번호 있어도 무방, 없어도 무방
+### 페이지 번호(`.pg`) 부여 규칙
+- **커버** (`data-label`에 "커버/Cover"): 번호 **없음**.
+- **섹션 디바이더** (다크 전체배경 + 짧은 타이틀만): 번호 **없음** (로고와 겹침).
+- **전면 이미지 / 클로징**: 번호 없음.
+- 우측 상단에 **버튼(데모 등)이 오는 슬라이드**: `.logo-wrap` 로고 **제거** (겹침 방지).
+- 그 외 일반 콘텐츠 슬라이드: 커버를 01로 세고 **02부터** 순번 부여.
 
-### 다크 배경 슬라이드 (슬라이드 01, 04, 21 헤더, 22 좌측)
+### 다크 배경 슬라이드
+- 배경: `style="background:var(--dark)"` (navy `#1B2456` — 거의-검정 금지)
 - 텍스트: `c-white` 또는 `rgba(255,255,255,0.7)`
 - 로고: `safeai_h_white.png`
-- `.pg-light` 클래스로 페이지 번호 흰색 처리
+- 페이지 번호: `.pg pg-light` (흰색)
 
 ### 콘텐츠 슬라이드 공통 구조
 ```html
-<section class="slide" id="sNN">
-  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--pad);">
+<section class="slide" data-label="슬라이드 이름" id="sNN">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;
+              padding:var(--safe-top) var(--pad) var(--safe-bottom);">
     <!-- 헤더 영역 -->
     <div style="flex-shrink:0;margin-bottom:32px;">
       <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>섹션명</div>
-      <h2 class="t36 fw7 tight c-dark">슬라이드 제목</h2>
+      <h2 class="t36 fw7 tight c-primary">슬라이드 제목</h2>   <!-- 제목은 브랜드 블루 -->
     </div>
     <!-- 콘텐츠 영역 (flex:1 = 나머지 공간 모두 사용) -->
     <div style="flex:1;min-height:0;">
@@ -191,9 +195,17 @@ Chrome 인쇄 시 깨지는 패턴:
 | `background-clip: text` | `color: #hex` 직접 지정 |
 | colored `rgba` box-shadow | `rgba(0,0,0,.1)` 단색 그림자 또는 border |
 | `filter: blur()` | 제거 |
-| `mask-image` | `opacity` 조절 |
+| `mask-image` / `-webkit-mask-image` | `opacity` 조절 (마스크 무시 → 배경 통째 인쇄됨) |
 | `backdrop-filter: blur()` | solid background-color |
 | `::before` content 장식 | 실제 `<span>` 태그 사용 |
+
+### `.no-print` — PDF 탈출구
+원칙은 위 패턴 **금지**다. 그러나 화면 연출용으로 꼭 써야 한다면 `class="no-print"`를 붙여
+인쇄(PDF)에서만 숨긴다. deck.html에 `@media print { .no-print { display:none !important; } }` 내장.
+
+- 대상: `mask-image`, mesh·grid `background-image`(격자 인쇄됨), 장식용 glow `box-shadow`(사각 음영),
+  `background-clip:text` 그라디언트(깨짐 → 단색 fallback 별도 제공).
+- **콘텐츠(텍스트·핵심 도형)에는 절대 쓰지 말 것** — PDF에서 사라진다. 순수 장식 전용.
 
 ---
 
