@@ -195,8 +195,6 @@ Chrome 인쇄 시 깨지는 패턴:
 | `backdrop-filter: blur()` | solid background-color |
 | `::before` content 장식 | 실제 `<span>` 태그 사용 |
 
-참고: [Claude Design 슬라이드 PDF 깨짐 원인과 예방법](http://blog.wonderx.co.kr/posts/claude-design-pdf-broken-fix)
-
 ---
 
 ## 8. AI 에이전트 체크리스트
