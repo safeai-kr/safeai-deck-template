@@ -1655,7 +1655,18 @@ body { font-family: var(--font); -webkit-font-smoothing:antialiased; }
   function injectHints() {
     var ds = document.querySelector('deck-stage');
     if (!ds || !ds.shadowRoot) return false;
-    var overlay = ds.shadowRoot.querySelector('.overlay');
+    var sr = ds.shadowRoot;
+    // Sharpness fix — deck-stage sets `will-change:transform` on .canvas, which
+    // makes the browser rasterize the 1280×720 layer once at base size and
+    // GPU-upscale that bitmap in fullscreen (scale 1.5–3×) → blurry text/icons.
+    // Overriding to `auto` lets the static fullscreen scale re-rasterize crisp.
+    if (!sr.getElementById('sharp-fix')) {
+      var sf = document.createElement('style');
+      sf.id = 'sharp-fix';
+      sf.textContent = '.canvas{ will-change:auto !important; }';
+      sr.appendChild(sf);
+    }
+    var overlay = sr.querySelector('.overlay');
     if (!overlay) return false;
     if (overlay.querySelector('.deck-hint')) return true; // already injected
     var div = document.createElement('span');
