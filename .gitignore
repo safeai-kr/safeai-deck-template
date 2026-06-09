@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Editor / tooling state (not part of the template)
+.omc/
+.vscode/
+.idea/
+
+# bkit / PDCA internal state
+docs/.bkit-memory.json
+docs/.pdca-status.json
+**/.bkit-memory.json
+**/.pdca-status.json

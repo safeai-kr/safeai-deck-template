@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  SafeAI Slide Template  v1.0                                 ║
+  ║  PDF-safe HTML presentation · 1280×720 (16:9)               ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  HOW TO USE  (deck-stage.js 구동 — docs/design-system.md 참고)║
+  ║  1. <deck-stage> 안에 <section class="slide" data-label>로 추가 ║
+  ║  2. 제목은 c-primary(브랜드 블루), 다크 슬라이드는 var(--dark) ║
+  ║  3. 조작: ←→ 이동 · F 전체화면 · T 썸네일레일 · 1~9 점프       ║
+  ║  4. PDF: Cmd/Ctrl+P → PDF로 저장 (용지 1280×720 자동, 손대지마)║
+  ║  5. 좌측 썸네일 레일에서 클릭/드래그/우클릭으로 슬라이드 관리   ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  PDF-SAFE RULES — NEVER USE:                                 ║
+  ║  ✗ background-clip: text  → use color:#hex directly          ║
+  ║  ✗ box-shadow with rgba color → rgba(0,0,0,.N) only          ║
+  ║  ✗ filter: blur() on decorative divs → remove or display:none║
+  ║  ✗ mask-image → use opacity instead                          ║
+  ║  ✗ ::before/after { content: none } → remove the rule        ║
+  ║  ✗ backdrop-filter: blur() → solid bg + opacity combo        ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발표자료</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+deck-stage:not(:defined){ visibility:hidden; }
+
+/* ═══════════════════════════════════════════════════════
+   0. DESIGN TOKENS  — edit these to match your brand
+═══════════════════════════════════════════════════════ */
+:root {
+  /* Brand colors — SafeAI brand blue (밝은 블루 · 제목/헤더/아이콘/액센트) */
+  --primary:       #3242C6;
+  --primary-dark:  #2937A7;
+  --primary-light: #E1E9F7;
+  --primary-mid:   #2A38B0;
+  --accent:        #0EA5E9;
+  --accent-light:  #E0F2FE;
+  --success:       #10B981;
+  --warning:       #F59E0B;
+  --danger:        #EF4444;
+  --purple:        #7C3AED;
+
+  /* Neutrals */
+  --dark:  #1B2456;  /* 다크 슬라이드 배경 — navy (less black) */
+  --ink:   #222A35;  /* 본문 near-black slate */
+  --g9:    #1E293B;
+  --g8:    #334155;
+  --g7:    #475569;
+  --g6:    #64748B;
+  --g5:    #94A3B8;
+  --g4:    #CBD5E1;
+  --g3:    #E2E8F0;
+  --g2:    #F1F5F9;
+  --g1:    #F8FAFC;
+  --white: #FFFFFF;
+
+  /* Layout */
+  --pad:  52px;
+  --safe-top:    76px; /* min padding-top for content areas — clears .logo-wrap (top:26px + h:26px + 24px gap) */
+  --safe-bottom: 52px; /* min padding-bottom for content areas — clears .pg (bottom:22px) */
+  --r:    16px;
+  --rsm:  8px;
+  --rfull:9999px;
+
+  /* Font */
+  --font: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════
+   1. RESET
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img { display: block; max-width: 100%; }
+
+/* =====================================================
+   2. PAGE SHELL  — deck-stage.js drives layout / nav / print
+===================================================== */
+html, body { margin:0; padding:0; background:#0c0c14; }
+body { font-family: var(--font); -webkit-font-smoothing:antialiased; }
+
+/* =====================================================
+   3. SLIDE SHELL  1280 x 720
+   deck-stage absolutely-positions each <section class="slide">
+===================================================== */
+.slide {
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+/* ═══════════════════════════════════════════════════════
+   4. GLOBAL CHROME (page number, logo, eyebrow)
+═══════════════════════════════════════════════════════ */
+.pg {
+  position: absolute;
+  bottom: 22px;
+  right: var(--pad);
+  font-size: 12px;
+  color: var(--g5);
+  font-weight: 500;
+}
+.pg-light { color: rgba(255,255,255,.4); }
+
+.logo-wrap {
+  position: absolute;
+  top: 26px;
+  right: var(--pad);
+}
+.logo-text {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--dark);
+}
+.logo-text-white { color: var(--white); }
+
+/* Eyebrow — PDF-safe: uses real <span> pill, not ::before */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.ep {  /* eyebrow pill — real element, not ::before */
+  display: inline-block;
+  width: 24px; height: 4px;
+  background: var(--primary);
+  border-radius: var(--rfull);
+  flex-shrink: 0;
+}
+.ep-white { background: rgba(255,255,255,.7); }
+.ep-accent { background: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   5. TYPOGRAPHY SCALE
+═══════════════════════════════════════════════════════ */
+.t56 { font-size:56px; } .t44 { font-size:44px; } .t36 { font-size:36px; }
+.t28 { font-size:28px; } .t22 { font-size:22px; } .t20 { font-size:20px; }
+.t18 { font-size:18px; } .t16 { font-size:16px; } .t14 { font-size:14px; }
+.t13 { font-size:13px; } .t12 { font-size:12px; }
+.fw8{font-weight:800;} .fw7{font-weight:700;} .fw6{font-weight:600;} .fw5{font-weight:500;}
+.lh1{line-height:1;} .lh11{line-height:1.1;} .lh12{line-height:1.2;}
+.lh14{line-height:1.4;} .lh16{line-height:1.6;}
+.tight{letter-spacing:-0.02em;} .wide{letter-spacing:0.06em;}
+
+.c-primary{color:var(--primary);} .c-accent{color:var(--accent);}
+.c-dark{color:var(--ink);} .c-muted{color:var(--g6);}
+.c-white{color:var(--white);} .c-success{color:var(--success);}
+.c-warning{color:var(--warning);} .c-danger{color:var(--danger);}
+
+/* ═══════════════════════════════════════════════════════
+   6. LAYOUT UTILITIES
+═══════════════════════════════════════════════════════ */
+.flex{display:flex;} .col{flex-direction:column;}
+.ac{align-items:center;} .as{align-items:flex-start;} .ae{align-items:flex-end;}
+.jc{justify-content:center;} .jb{justify-content:space-between;}
+.f1{flex:1;} .minh0{min-height:0;} .wfull{width:100%;} .hfull{height:100%;}
+.g4{gap:4px;} .g8{gap:8px;} .g12{gap:12px;} .g16{gap:16px;} .g20{gap:20px;}
+.g24{gap:24px;} .g32{gap:32px;} .g40{gap:40px;} .g48{gap:48px;}
+.pad{padding:var(--pad);} .padx{padding-left:var(--pad);padding-right:var(--pad);}
+.pady{padding-top:var(--pad);padding-bottom:var(--pad);}
+
+/* ═══════════════════════════════════════════════════════
+   7. COMPONENT LIBRARY
+═══════════════════════════════════════════════════════ */
+
+/* Badge */
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:5px 14px; border-radius:var(--rfull);
+  font-size:13px; font-weight:600;
+}
+.b-blue  {background:var(--primary-light);color:var(--primary);}
+.b-teal  {background:var(--accent-light);color:#0369A1;}
+.b-green {background:#ECFDF5;color:#059669;}
+.b-amber {background:#FFFBEB;color:#B45309;}
+.b-red   {background:#FEF2F2;color:#B91C1C;}
+.b-dark  {background:var(--g9);color:var(--white);}
+.b-purple{background:#F5F3FF;color:var(--purple);}
+
+/* Card */
+.card {
+  background:var(--g1); border:1.5px solid var(--g3);
+  border-radius:var(--r); padding:24px;
+  display:flex; flex-direction:column;
+}
+.card-p  {background:var(--primary-light); border-color:#BFDBFE;}
+.card-dk {background:var(--g9); border-color:var(--g8); color:var(--white);}
+.card-acc{background:var(--accent-light); border-color:#BAE6FD;}
+
+/* Number circle */
+.ncirc{
+  width:40px; height:40px; min-width:40px; border-radius:50%;
+  background:var(--primary); color:var(--white);
+  font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.ncirc-sm{width:28px; height:28px; min-width:28px; font-size:13px;}
+.ncirc-outline{background:transparent; border:2px solid var(--primary); color:var(--primary);}
+
+/* Icon circle — SVG icons inherit color */
+.icon-circ{
+  width:52px; height:52px; min-width:52px; border-radius:50%;
+  background:var(--primary-light);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--primary);
+}
+
+/* Accent bar (left border) */
+.abar{border-left:4px solid var(--primary); padding-left:18px;}
+.abar-acc{border-left-color:var(--accent);}
+.abar-suc{border-left-color:var(--success);}
+
+/* Horizontal rule */
+.hr{width:100%; height:1.5px; background:var(--g3);}
+.hr-p{background:var(--primary-light);}
+
+/* Table */
+.tbl{width:100%; border-collapse:collapse; font-size:15px;}
+.tbl thead th{
+  background:var(--g9); color:var(--white);
+  padding:12px 18px; font-size:13px; font-weight:600;
+  letter-spacing:0.05em; text-align:left;
+}
+.tbl thead th:first-child{border-radius:var(--rsm) 0 0 0;}
+.tbl thead th:last-child {border-radius:0 var(--rsm) 0 0;}
+.tbl tbody td{
+  padding:11px 18px; border-bottom:1px solid var(--g3);
+  color:var(--g8);
+}
+.tbl tbody tr:nth-child(even) td{background:var(--g1);}
+.tbl tbody tr:last-child td{border-bottom:none;}
+
+/* Progress bar — PDF-safe: no animation */
+.pbar{height:8px; background:var(--g3); border-radius:var(--rfull); overflow:hidden;}
+.pbar-fill{height:100%; background:var(--primary); border-radius:var(--rfull);}
+
+/* Timeline */
+.tl-wrap{position:relative;}
+.tl-line{  /* vertical connector */
+  position:absolute; left:6px; top:22px;
+  width:2px; height:calc(100% - 22px);
+  background:var(--g3);
+}
+.tl-dot{
+  width:14px; height:14px; min-width:14px; border-radius:50%;
+  background:var(--primary); margin-top:3px;
+}
+.tl-dot-outline{background:var(--white); border:2px solid var(--primary);}
+
+/* Quote mark — text node, not pseudo → PDF-safe */
+.qmark{
+  font-size:80px; line-height:0.8;
+  color:var(--g3); font-family:Georgia,serif; font-weight:700;
+  user-select:none;
+}
+
+/* Step arrow connector (solid border) */
+.step-arrow{
+  width:32px; height:32px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--g4); font-size:20px;
+}
+
+/* Image placeholder */
+.img-ph{
+  background:var(--g2); border:1.5px dashed var(--g4);
+  border-radius:var(--rsm);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--g5); font-size:14px; font-weight:500;
+  text-align:center;
+}
+.img-ph img{
+  width:100%; height:100%; object-fit:cover;
+  border-radius:var(--rsm);
+}
+
+/* Caption */
+.caption{font-size:13px; color:var(--g5); text-align:center; margin-top:8px;}
+
+/* Two-tone decorative circles (PDF-safe: solid border, no blur) */
+.deco-rings{
+  position:absolute;
+  pointer-events:none;
+}
+
+
+</style>
+</head>
+<body>
+
+<deck-stage width="1280" height="720" style="--deck-rail-w:200px;">
+
+
+<!-- ════════════════════════════════════════════════════════
+     01  COVER — DARK BRAND
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Cover — Dark Brand" id="s01" style="background:var(--dark);">
+  <!-- Top accent bar -->
+  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--primary);"></div>
+
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:var(--safe-top) var(--pad) var(--safe-bottom);padding-top:72px;">
+    <div class="eyebrow g8" style="color:var(--accent);margin-bottom:28px;">
+      <span class="ep ep-accent"></span>Company Presentation
+    </div>
+    <h1 class="t56 fw8 lh11 tight c-white" style="max-width:680px;margin-bottom:20px;">
+      발표 제목을<br>여기에 입력하세요
+    </h1>
+    <p class="t18 lh16" style="color:var(--g5);max-width:520px;margin-bottom:52px;">
+      핵심 메시지를 한두 줄로 작성합니다. 청중이 가장 먼저 인상받는 문장입니다.
+    </p>
+    <div class="flex ac g32">
+      <div style="white-space:nowrap;flex-shrink:0;">
+        <div class="t12 wide" style="color:var(--g6);margin-bottom:4px;">DATE</div>
+        <div class="t16 fw6 c-white">2026년 6월 9일</div>
+      </div>
+      <div style="width:1px;height:32px;background:var(--g8);"></div>
+      <div>
+        <div class="t12 wide" style="color:var(--g6);margin-bottom:4px;">PRESENTER</div>
+        <div class="t16 fw6 c-white">발표자 이름</div>
+      </div>
+      <div style="width:1px;height:32px;background:var(--g8);"></div>
+      <div>
+        <div class="t12 wide" style="color:var(--g6);margin-bottom:4px;">COMPANY</div>
+        <div class="t16 fw6 c-white">SafeAI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cover image right side -->
+  <div style="position:absolute;right:72px;top:0;bottom:0;width:560px;pointer-events:none;">
+    <img src="assets/cover_isometric_dark.png" style="width:100%;height:100%;object-fit:contain;object-position:center;display:block;">
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     02  COVER — CLEAN LIGHT
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Cover — Clean Light" id="s02">
+  <!-- Left accent strip -->
+  <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--primary);"></div>
+
+  <div style="position:absolute;inset:0;display:flex;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <!-- Left: content -->
+    <div class="flex col jc f1 g0" style="max-width:620px;padding-right:40px;">
+      <div class="eyebrow g8" style="margin-bottom:20px;"><span class="ep"></span>솔루션 제안서</div>
+      <h1 class="t56 fw8 lh11 tight c-dark" style="margin-bottom:20px;">
+        슬라이드 제목을<br>두 줄로 입력하세요
+      </h1>
+      <p class="t18 lh16 c-muted" style="margin-bottom:36px;max-width:480px;">
+        핵심 가치와 차별점을 간결하게 설명합니다. 청중이 즉시 이해할 수 있도록 쉬운 언어를 사용하세요.
+      </p>
+      <div class="flex ac g12">
+        <div class="badge b-blue">AI Vision</div>
+        <div class="badge b-teal">산업 안전</div>
+        <div class="badge b-green">실시간 분석</div>
+      </div>
+    </div>
+
+    <!-- Right: cover image -->
+    <div style="width:520px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+      <img src="assets/cover_isometric_light.png" style="width:100%;height:auto;max-height:620px;object-fit:contain;display:block;">
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     03  AGENDA
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Agenda" id="s03">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div class="flex ac jb" style="margin-bottom:36px;flex-shrink:0;">
+      <div>
+        <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>Contents</div>
+        <h2 class="t36 fw7 tight c-primary">목차</h2>
+      </div>
+      <div class="logo-wrap" style="position:static;"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:0;">
+      <div class="card flex col g12">
+        <div class="flex ac g16">
+          <div class="ncirc">01</div>
+          <div>
+            <div class="t18 fw7 c-dark">섹션 제목 1</div>
+            <div class="t13 c-muted" style="margin-top:3px;">p. 4–8</div>
+          </div>
+        </div>
+        <div class="t14 lh16 c-muted" style="padding-left:56px;">섹션에 대한 간략한 설명 한 줄</div>
+      </div>
+
+      <div class="card flex col g12">
+        <div class="flex ac g16">
+          <div class="ncirc">02</div>
+          <div>
+            <div class="t18 fw7 c-dark">섹션 제목 2</div>
+            <div class="t13 c-muted" style="margin-top:3px;">p. 9–14</div>
+          </div>
+        </div>
+        <div class="t14 lh16 c-muted" style="padding-left:56px;">섹션에 대한 간략한 설명 한 줄</div>
+      </div>
+
+      <div class="card flex col g12">
+        <div class="flex ac g16">
+          <div class="ncirc">03</div>
+          <div>
+            <div class="t18 fw7 c-dark">섹션 제목 3</div>
+            <div class="t13 c-muted" style="margin-top:3px;">p. 15–20</div>
+          </div>
+        </div>
+        <div class="t14 lh16 c-muted" style="padding-left:56px;">섹션에 대한 간략한 설명 한 줄</div>
+      </div>
+
+      <div class="card flex col g12">
+        <div class="flex ac g16">
+          <div class="ncirc">04</div>
+          <div>
+            <div class="t18 fw7 c-dark">섹션 제목 4</div>
+            <div class="t13 c-muted" style="margin-top:3px;">p. 21–26</div>
+          </div>
+        </div>
+        <div class="t14 lh16 c-muted" style="padding-left:56px;">섹션에 대한 간략한 설명 한 줄</div>
+      </div>
+    </div>
+  </div>
+  <div class="pg">03</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     04  SECTION DIVIDER
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Section Divider" id="s04" style="background:var(--primary);">
+  <!-- Solid geometric accent — no blur, PDF-safe -->
+  <div style="position:absolute;right:0;top:0;width:360px;height:100%;background:var(--primary-dark);opacity:0.4;"></div>
+  <div style="position:absolute;right:60px;top:50%;transform:translateY(-50%);width:200px;height:200px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);"></div>
+
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div class="t13 wide fw7" style="color:rgba(255,255,255,0.6);margin-bottom:20px;letter-spacing:0.15em;">SECTION 02</div>
+    <h2 class="t56 fw8 lh11 tight c-white" style="margin-bottom:20px;">섹션 제목</h2>
+    <div style="width:60px;height:4px;background:rgba(255,255,255,0.5);border-radius:var(--rfull);margin-bottom:20px;"></div>
+    <p class="t20 lh14" style="color:rgba(255,255,255,0.75);max-width:480px;">
+      이 섹션에서 다룰 핵심 내용을 한두 문장으로 요약합니다.
+    </p>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+  <div class="pg pg-light">04</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     05  TITLE + BULLET POINTS
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Title + Bullet Points" id="s05">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <!-- Header -->
+    <div style="flex-shrink:0;margin-bottom:36px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>핵심 내용</div>
+      <h2 class="t36 fw7 tight c-primary">슬라이드 제목을 여기에 입력합니다</h2>
+    </div>
+
+    <!-- Body: two columns of bullets -->
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:24px;min-height:0;">
+      <div class="flex col g20">
+        <div class="flex as g16">
+          <div style="width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--primary);margin-top:8px;"></div>
+          <div>
+            <div class="t18 fw6 c-dark" style="margin-bottom:6px;">첫 번째 핵심 포인트</div>
+            <div class="t15 lh16 c-muted">이 항목에 대한 상세 설명을 2–3줄로 작성합니다. 구체적인 수치나 사례를 포함하면 효과적입니다.</div>
+          </div>
+        </div>
+        <div class="flex as g16">
+          <div style="width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--primary);margin-top:8px;"></div>
+          <div>
+            <div class="t18 fw6 c-dark" style="margin-bottom:6px;">두 번째 핵심 포인트</div>
+            <div class="t15 lh16 c-muted">이 항목에 대한 상세 설명을 2–3줄로 작성합니다. 구체적인 수치나 사례를 포함하면 효과적입니다.</div>
+          </div>
+        </div>
+        <div class="flex as g16">
+          <div style="width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--primary);margin-top:8px;"></div>
+          <div>
+            <div class="t18 fw6 c-dark" style="margin-bottom:6px;">세 번째 핵심 포인트</div>
+            <div class="t15 lh16 c-muted">이 항목에 대한 상세 설명을 2–3줄로 작성합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex col g20">
+        <div class="flex as g16">
+          <div style="width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--accent);margin-top:8px;"></div>
+          <div>
+            <div class="t18 fw6 c-dark" style="margin-bottom:6px;">네 번째 핵심 포인트</div>
+            <div class="t15 lh16 c-muted">이 항목에 대한 상세 설명을 2–3줄로 작성합니다.</div>
+          </div>
+        </div>
+        <div class="flex as g16">
+          <div style="width:8px;height:8px;min-width:8px;border-radius:50%;background:var(--accent);margin-top:8px;"></div>
+          <div>
+            <div class="t18 fw6 c-dark" style="margin-bottom:6px;">다섯 번째 핵심 포인트</div>
+            <div class="t15 lh16 c-muted">이 항목에 대한 상세 설명을 2–3줄로 작성합니다.</div>
+          </div>
+        </div>
+        <!-- Highlighted callout -->
+        <div class="card card-p" style="margin-top:4px;">
+          <div class="t14 fw6 c-primary" style="margin-bottom:6px;">핵심 인사이트</div>
+          <div class="t14 lh16 c-dark">가장 중요한 메시지를 강조 박스로 표시합니다. 청중이 기억해야 할 한 가지입니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">05</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     06  TITLE + IMAGE RIGHT
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Title + Image Right" id="s06">
+  <div style="position:absolute;inset:0;display:flex;padding:var(--safe-top) var(--pad) var(--safe-bottom);gap:40px;">
+    <!-- Left: text -->
+    <div class="flex col jc f1 g0">
+      <div class="eyebrow g8" style="margin-bottom:16px;"><span class="ep"></span>기술 소개</div>
+      <h2 class="t36 fw7 tight c-primary" style="margin-bottom:16px;">
+        제목을 2–3줄로<br>작성하세요
+      </h2>
+      <p class="t16 lh16 c-muted" style="margin-bottom:28px;">
+        이미지를 보완하는 설명 텍스트를 작성합니다. 시각적 요소와 텍스트가 서로를 보완하도록 구성하세요.
+      </p>
+      <div class="flex col g12">
+        <div class="flex ac g12">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0;"></div>
+          <div class="t15 c-dark">핵심 특징 첫 번째</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0;"></div>
+          <div class="t15 c-dark">핵심 특징 두 번째</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0;"></div>
+          <div class="t15 c-dark">핵심 특징 세 번째</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: image -->
+    <div style="width:520px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+      <div class="img-ph" style="flex:1;">
+        이미지를 여기에 배치<br><span style="font-size:12px;margin-top:4px;display:block;">assets/ 폴더에 이미지 추가 후<br>&lt;img src="assets/your-image.png"&gt; 로 교체</span>
+      </div>
+      <div class="caption">이미지 캡션을 여기에 작성합니다</div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">06</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     07  TITLE + IMAGE LEFT
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Title + Image Left" id="s07">
+  <div style="position:absolute;inset:0;display:flex;padding:var(--safe-top) var(--pad) var(--safe-bottom);gap:40px;">
+    <!-- Left: image -->
+    <div style="width:520px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+      <div class="img-ph" style="flex:1;">이미지</div>
+      <div class="caption">이미지 캡션</div>
+    </div>
+
+    <!-- Right: text -->
+    <div class="flex col jc f1 g0">
+      <div class="eyebrow g8" style="margin-bottom:16px;"><span class="ep"></span>현장 적용</div>
+      <h2 class="t36 fw7 tight c-primary" style="margin-bottom:16px;">
+        이미지 왼쪽,<br>텍스트 오른쪽 레이아웃
+      </h2>
+      <p class="t16 lh16 c-muted" style="margin-bottom:28px;">
+        이미지가 먼저 시선을 끌고, 텍스트가 맥락을 제공하는 구성입니다. 현장 사진이나 제품 스크린샷에 적합합니다.
+      </p>
+      <div class="card card-p">
+        <div class="t14 fw6 c-primary" style="margin-bottom:6px;">주요 성과</div>
+        <div class="t14 lh16 c-dark">수치나 결과를 강조할 때 이 박스를 활용하세요. 예: 정확도 98.7%, 처리 속도 30ms</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">07</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     08  TWO COLUMNS — EQUAL
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Two Columns — Equal" id="s08">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:32px;">
+      <h2 class="t36 fw7 tight c-primary">두 가지 관점 / 비교 레이아웃</h2>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:24px;min-height:0;">
+      <!-- Column A -->
+      <div class="card flex col g16">
+        <div class="flex ac g12" style="margin-bottom:4px;">
+          <div class="icon-circ"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <div class="t18 fw7 c-dark">왼쪽 컬럼 제목</div>
+        </div>
+        <div class="hr"></div>
+        <div class="flex col g12 f1">
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;">1</div>
+            <div class="t15 lh16 c-dark">항목 내용을 여기에 작성합니다. 간결하고 명확하게.</div>
+          </div>
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;">2</div>
+            <div class="t15 lh16 c-dark">항목 내용을 여기에 작성합니다.</div>
+          </div>
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;">3</div>
+            <div class="t15 lh16 c-dark">항목 내용을 여기에 작성합니다.</div>
+          </div>
+        </div>
+        <div class="badge b-blue" style="align-self:flex-start;">레이블</div>
+      </div>
+
+      <!-- Column B -->
+      <div class="card card-dk flex col g16">
+        <div class="flex ac g12" style="margin-bottom:4px;">
+          <div class="icon-circ" style="background:rgba(255,255,255,0.1);color:#fff;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg></div>
+          <div class="t18 fw7 c-white">오른쪽 컬럼 제목</div>
+        </div>
+        <div class="hr" style="background:var(--g7);"></div>
+        <div class="flex col g12 f1">
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;background:rgba(255,255,255,0.15);">1</div>
+            <div class="t15 lh16 c-white">항목 내용을 여기에 작성합니다.</div>
+          </div>
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;background:rgba(255,255,255,0.15);">2</div>
+            <div class="t15 lh16 c-white">항목 내용을 여기에 작성합니다.</div>
+          </div>
+          <div class="flex as g12">
+            <div class="ncirc ncirc-sm" style="flex-shrink:0;background:rgba(255,255,255,0.15);">3</div>
+            <div class="t15 lh16 c-white">항목 내용을 여기에 작성합니다.</div>
+          </div>
+        </div>
+        <div class="badge b-dark" style="align-self:flex-start;background:rgba(255,255,255,0.15);">레이블</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">08</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     09  THREE COLUMN CARDS
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Three Column Cards" id="s09">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:32px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>솔루션 구성</div>
+      <h2 class="t36 fw7 tight c-primary">세 가지 핵심 기능</h2>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;min-height:0;">
+      <div class="card flex col g16">
+        <div class="icon-circ" style="margin-bottom:4px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+        <div class="t20 fw7 c-dark">기능 1 제목</div>
+        <div class="hr"></div>
+        <div class="t14 lh16 c-muted f1">기능에 대한 상세 설명을 3–4줄로 작성합니다. 고객이 얻는 가치 중심으로 설명하세요.</div>
+        <div class="badge b-blue" style="align-self:flex-start;">키워드</div>
+      </div>
+
+      <div class="card card-p flex col g16">
+        <div class="icon-circ" style="margin-bottom:4px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+        <div class="t20 fw7 c-dark">기능 2 제목</div>
+        <div class="hr hr-p"></div>
+        <div class="t14 lh16 c-dark f1">기능에 대한 상세 설명을 3–4줄로 작성합니다. 고객이 얻는 가치 중심으로 설명하세요.</div>
+        <div class="badge b-blue" style="align-self:flex-start;">키워드</div>
+      </div>
+
+      <div class="card flex col g16">
+        <div class="icon-circ" style="margin-bottom:4px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="t20 fw7 c-dark">기능 3 제목</div>
+        <div class="hr"></div>
+        <div class="t14 lh16 c-muted f1">기능에 대한 상세 설명을 3–4줄로 작성합니다. 고객이 얻는 가치 중심으로 설명하세요.</div>
+        <div class="badge b-teal" style="align-self:flex-start;">키워드</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">09</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     10  STATS / METRICS
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Stats / Metrics" id="s10">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:36px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>성과 지표</div>
+      <h2 class="t36 fw7 tight c-primary">숫자로 보는 성과</h2>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px;min-height:0;">
+      <div class="card flex col jc ac" style="text-align:center;gap:8px;">
+        <div style="font-size:52px;font-weight:800;line-height:1;letter-spacing:-0.03em;color:var(--primary);">98.7<span style="font-size:32px;">%</span></div>
+        <div class="t14 c-muted" style="margin-top:4px;">탐지 정확도</div>
+        <div class="badge b-green" style="margin-top:4px;">목표 달성</div>
+      </div>
+
+      <div class="card flex col jc ac" style="text-align:center;gap:8px;">
+        <div style="font-size:52px;font-weight:800;line-height:1;letter-spacing:-0.03em;color:var(--accent);">30<span style="font-size:28px;font-weight:600;">ms</span></div>
+        <div class="t14 c-muted" style="margin-top:4px;">실시간 처리 지연</div>
+        <div class="badge b-teal" style="margin-top:4px;">업계 최저</div>
+      </div>
+
+      <div class="card flex col jc ac" style="text-align:center;gap:8px;">
+        <div style="font-size:52px;font-weight:800;line-height:1;letter-spacing:-0.03em;color:var(--success);">300<span style="font-size:28px;font-weight:600;">+</span></div>
+        <div class="t14 c-muted" style="margin-top:4px;">배포 현장 수</div>
+        <div class="badge b-green" style="margin-top:4px;">전국</div>
+      </div>
+
+      <div class="card flex col jc ac" style="text-align:center;gap:8px;">
+        <div style="font-size:52px;font-weight:800;line-height:1;letter-spacing:-0.03em;color:var(--warning);">40<span style="font-size:28px;font-weight:600;">%</span></div>
+        <div class="t14 c-muted" style="margin-top:4px;">사고 감소율</div>
+        <div class="badge b-amber" style="margin-top:4px;">YoY</div>
+      </div>
+    </div>
+
+    <!-- Progress bars row -->
+    <div style="margin-top:20px;flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="flex col g6">
+        <div class="flex jb t13 c-muted"><span>항목 A 달성률</span><span class="fw6 c-dark">85%</span></div>
+        <div class="pbar"><div class="pbar-fill" style="width:85%;"></div></div>
+      </div>
+      <div class="flex col g6">
+        <div class="flex jb t13 c-muted"><span>항목 B 달성률</span><span class="fw6 c-dark">62%</span></div>
+        <div class="pbar"><div class="pbar-fill" style="width:62%;background:var(--accent);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">10</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     11  FULL BLEED IMAGE
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Full Bleed Image" id="s11" style="background:var(--g9);">
+  <!-- Image fills entire slide — replace with real img -->
+  <div style="position:absolute;inset:0;background:var(--g8);display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;color:var(--g5);">
+      <div class="t22 fw6">배경 이미지를 여기에 배치</div>
+      <div class="t14" style="margin-top:8px;">style="background-image:url(assets/image.jpg); background-size:cover;"</div>
+    </div>
+  </div>
+
+  <!-- Bottom caption bar — solid, PDF-safe -->
+  <div style="position:absolute;bottom:0;left:0;right:0;background:var(--dark);padding:20px var(--pad);">
+    <div class="flex ac jb">
+      <div>
+        <div class="t22 fw7 c-white">이미지 제목 또는 캡션</div>
+        <div class="t14 c-muted" style="margin-top:4px;">출처 또는 부가 설명을 입력합니다</div>
+      </div>
+      <div class="badge b-blue">분류 태그</div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+  <div class="pg pg-light">11</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     12  TABLE — COMPARISON
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Table — Comparison" id="s12">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:28px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>비교 분석</div>
+      <h2 class="t36 fw7 tight c-primary">방식 비교 / 사양 테이블</h2>
+    </div>
+
+    <div style="flex:1;min-height:0;overflow:hidden;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:160px;">항목</th>
+            <th>기존 방식</th>
+            <th>SafeAI 솔루션</th>
+            <th style="width:120px;">효과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw6 c-dark">처리 속도</td>
+            <td class="c-muted">수동 확인, 지연 평균 10분</td>
+            <td class="fw6 c-primary">실시간 자동 탐지 &lt;30ms</td>
+            <td><span class="badge b-green">20× 향상</span></td>
+          </tr>
+          <tr>
+            <td class="fw6 c-dark">정확도</td>
+            <td class="c-muted">작업자 주관에 의존 60–70%</td>
+            <td class="fw6 c-primary">AI 모델 기반 98.7%</td>
+            <td><span class="badge b-green">+30%</span></td>
+          </tr>
+          <tr>
+            <td class="fw6 c-dark">24/7 운영</td>
+            <td class="c-muted">불가 (교대근무 필요)</td>
+            <td class="fw6 c-primary">가능 (자동화)</td>
+            <td><span class="badge b-blue">비용 절감</span></td>
+          </tr>
+          <tr>
+            <td class="fw6 c-dark">데이터 활용</td>
+            <td class="c-muted">기록 없음 / 사후 분석 불가</td>
+            <td class="fw6 c-primary">이력 저장, 대시보드 제공</td>
+            <td><span class="badge b-teal">인사이트</span></td>
+          </tr>
+          <tr>
+            <td class="fw6 c-dark">도입 기간</td>
+            <td class="c-muted">6–12개월</td>
+            <td class="fw6 c-primary">2–4주</td>
+            <td><span class="badge b-amber">신속 도입</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">12</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     13  QUOTE / TESTIMONIAL
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Quote / Testimonial" id="s13" style="background:var(--g1);">
+  <div style="position:absolute;inset:0;display:flex;align-items:center;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="max-width:900px;margin:0 auto;">
+      <!-- Quote mark as text (not pseudo-element → PDF-safe) -->
+      <div class="qmark" style="margin-bottom:8px;">"</div>
+
+      <blockquote class="t36 fw7 lh14 c-dark tight" style="margin-bottom:36px;">
+        인용할 내용을 여기에 입력합니다. 고객의 말이나 임원 발언을 큰 텍스트로 강조합니다. 2–3줄이 가장 임팩트 있습니다.
+      </blockquote>
+
+      <div class="hr" style="width:64px;margin-bottom:24px;background:var(--primary);height:3px;border-radius:var(--rfull);"></div>
+
+      <div class="flex ac g16">
+        <!-- Avatar placeholder — solid circle, no shadow -->
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--g3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--g6);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <div class="t18 fw7 c-dark">홍길동</div>
+          <div class="t14 c-muted">삼성중공업 · 안전관리팀장</div>
+        </div>
+        <div style="margin-left:auto;">
+          <div class="badge b-blue">고객사 이름</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side accent -->
+  <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--primary);"></div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">13</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     14  TIMELINE
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Timeline" id="s14">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:36px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>로드맵</div>
+      <h2 class="t36 fw7 tight c-primary">개발/도입 타임라인</h2>
+    </div>
+
+    <!-- Horizontal timeline -->
+    <div style="flex:1;display:flex;align-items:center;min-height:0;">
+      <!-- Connector line -->
+      <div style="position:relative;width:100%;">
+        <div style="position:absolute;top:28px;left:0;right:0;height:3px;background:var(--g3);z-index:0;"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;position:relative;z-index:1;">
+          <!-- Step 1 -->
+          <div class="flex col ac" style="gap:12px;padding:0 12px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;">1</div>
+            <div style="text-align:center;">
+              <div class="t13 wide c-primary fw7" style="margin-bottom:6px;">2026 Q1</div>
+              <div class="t16 fw7 c-dark" style="margin-bottom:8px;">현황 분석</div>
+              <div class="t13 lh16 c-muted">현장 조사 및<br>요구사항 정의</div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex col ac" style="gap:12px;padding:0 12px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;">2</div>
+            <div style="text-align:center;">
+              <div class="t13 wide c-primary fw7" style="margin-bottom:6px;">2026 Q2</div>
+              <div class="t16 fw7 c-dark" style="margin-bottom:8px;">파일럿 구축</div>
+              <div class="t13 lh16 c-muted">시스템 설치 및<br>초기 모델 적용</div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex col ac" style="gap:12px;padding:0 12px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;">3</div>
+            <div style="text-align:center;">
+              <div class="t13 wide fw7" style="margin-bottom:6px;color:var(--accent);">2026 Q3</div>
+              <div class="t16 fw7 c-dark" style="margin-bottom:8px;">검증 / 개선</div>
+              <div class="t13 lh16 c-muted">성능 검증 및<br>파인튜닝</div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex col ac" style="gap:12px;padding:0 12px;">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--g3);display:flex;align-items:center;justify-content:center;color:var(--g6);font-size:18px;font-weight:700;">4</div>
+            <div style="text-align:center;">
+              <div class="t13 wide c-muted fw7" style="margin-bottom:6px;">2026 Q4</div>
+              <div class="t16 fw7 c-dark" style="margin-bottom:8px;">전체 배포</div>
+              <div class="t13 lh16 c-muted">전 현장 확대<br>적용 및 운영</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current status bar -->
+    <div class="card card-p flex ac jb" style="flex-shrink:0;margin-top:20px;padding:14px 24px;">
+      <div class="t14 fw6 c-dark">현재 진행 상황</div>
+      <div class="flex ac g8">
+        <div style="width:200px;">
+          <div class="pbar"><div class="pbar-fill" style="width:45%;"></div></div>
+        </div>
+        <div class="t13 fw6 c-primary">45% 완료</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">14</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     15  PROBLEM → SOLUTION
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Problem → Solution" id="s15">
+  <div style="position:absolute;inset:0;display:flex;">
+    <!-- Left: Problem (dark) -->
+    <div style="flex:1;background:var(--g9);padding:var(--pad);display:flex;flex-direction:column;justify-content:center;gap:24px;">
+      <div>
+        <div class="t12 wide fw7" style="color:var(--g5);letter-spacing:0.15em;margin-bottom:12px;">PROBLEM</div>
+        <h3 class="t28 fw7 lh12 c-white tight" style="margin-bottom:16px;">현재의 문제점</h3>
+        <p class="t15 lh16" style="color:var(--g5);">현장에서 겪고 있는 핵심 문제를 명확하게 기술합니다.</p>
+      </div>
+      <div class="flex col g12">
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--danger);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✕</div>
+          <div class="t14 lh16" style="color:var(--g5);">문제 항목 1 — 구체적으로 서술</div>
+        </div>
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--danger);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✕</div>
+          <div class="t14 lh16" style="color:var(--g5);">문제 항목 2 — 수치로 표현 시 더 효과적</div>
+        </div>
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--danger);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✕</div>
+          <div class="t14 lh16" style="color:var(--g5);">문제 항목 3 — 고객 pain point 강조</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider arrow -->
+    <div style="width:56px;background:var(--g8);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div style="font-size:22px;color:var(--g5);">→</div>
+    </div>
+
+    <!-- Right: Solution (light) -->
+    <div style="flex:1;background:var(--white);padding:var(--pad);display:flex;flex-direction:column;justify-content:center;gap:24px;">
+      <div>
+        <div class="t12 wide fw7 c-primary" style="letter-spacing:0.15em;margin-bottom:12px;">SOLUTION</div>
+        <h3 class="t28 fw7 lh12 c-primary tight" style="margin-bottom:16px;">SafeAI의 해결책</h3>
+        <p class="t15 lh16 c-muted">어떻게 문제를 해결하는지 명확하게 설명합니다.</p>
+      </div>
+      <div class="flex col g12">
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✓</div>
+          <div class="t14 lh16 c-dark">해결책 1 — 어떻게 문제를 해결하는가</div>
+        </div>
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✓</div>
+          <div class="t14 lh16 c-dark">해결책 2 — 구체적인 기술/방법 명시</div>
+        </div>
+        <div class="flex as g12">
+          <div style="width:20px;height:20px;min-width:20px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;">✓</div>
+          <div class="t14 lh16 c-dark">해결책 3 — 고객 기대 효과 기재</div>
+        </div>
+      </div>
+      <div class="card card-p">
+        <div class="t13 fw7 c-primary" style="margin-bottom:4px;">예상 효과</div>
+        <div class="t14 lh16 c-dark">수치로 표현된 기대 효과: 예) 사고 40% 감소, 비용 30% 절감</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">15</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     16  PROCESS STEPS — HORIZONTAL FLOW
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Process Steps" id="s16">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:36px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>프로세스</div>
+      <h2 class="t36 fw7 tight c-primary">도입 프로세스 4단계</h2>
+    </div>
+
+    <div style="flex:1;display:flex;align-items:center;min-height:0;">
+      <div style="width:100%;display:flex;align-items:flex-start;gap:0;">
+        <!-- Step 1 -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;">1</div>
+          <div style="text-align:center;">
+            <div class="t16 fw7 c-dark" style="margin-bottom:8px;">현황 파악</div>
+            <div class="t13 lh16 c-muted">현장 방문 및<br>요구사항 청취<br>문제 정의</div>
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="padding-top:20px;font-size:24px;color:var(--g4);">›</div>
+
+        <!-- Step 2 -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--primary-mid);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;">2</div>
+          <div style="text-align:center;">
+            <div class="t16 fw7 c-dark" style="margin-bottom:8px;">솔루션 설계</div>
+            <div class="t13 lh16 c-muted">아키텍처 설계<br>모델 선정<br>커스터마이징</div>
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="padding-top:20px;font-size:24px;color:var(--g4);">›</div>
+
+        <!-- Step 3 -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;">3</div>
+          <div style="text-align:center;">
+            <div class="t16 fw7 c-dark" style="margin-bottom:8px;">구축 / 배포</div>
+            <div class="t13 lh16 c-muted">시스템 설치<br>데이터 수집<br>모델 학습</div>
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="padding-top:20px;font-size:24px;color:var(--g4);">›</div>
+
+        <!-- Step 4 -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;">4</div>
+          <div style="text-align:center;">
+            <div class="t16 fw7 c-dark" style="margin-bottom:8px;">운영 / 개선</div>
+            <div class="t13 lh16 c-muted">성능 모니터링<br>지속적 개선<br>유지보수</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom note -->
+    <div class="card flex ac jb" style="flex-shrink:0;margin-top:16px;padding:14px 24px;">
+      <div class="flex ac g8">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--success);"></div>
+        <div class="t13 c-muted">전체 도입 기간: <span class="fw6 c-dark">2–4주</span></div>
+      </div>
+      <div class="flex ac g8">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--primary);"></div>
+        <div class="t13 c-muted">전담 엔지니어 상주 지원</div>
+      </div>
+      <div class="flex ac g8">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>
+        <div class="t13 c-muted">도입 후 90일 무상 A/S</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">16</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     17  FOUR IMAGE GRID  (2×2)
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="2×2 Image Grid" id="s17">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:24px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>현장 적용 사례</div>
+      <h2 class="t36 fw7 tight c-primary">다양한 현장 적용 화면</h2>
+    </div>
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;min-height:0;">
+      <div class="img-ph flex col ac jc g8">
+        <div class="t16 fw5 c-muted">이미지 1</div>
+        <div class="t13 c-muted">캡션 입력</div>
+      </div>
+      <div class="img-ph flex col ac jc g8">
+        <div class="t16 fw5 c-muted">이미지 2</div>
+        <div class="t13 c-muted">캡션 입력</div>
+      </div>
+      <div class="img-ph flex col ac jc g8">
+        <div class="t16 fw5 c-muted">이미지 3</div>
+        <div class="t13 c-muted">캡션 입력</div>
+      </div>
+      <div class="img-ph flex col ac jc g8">
+        <div class="t16 fw5 c-muted">이미지 4</div>
+        <div class="t13 c-muted">캡션 입력</div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">17</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     18  TEAM MEMBERS
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Team Members" id="s18">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:32px;">
+      <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>Our Team</div>
+      <h2 class="t36 fw7 tight c-primary">함께하는 팀</h2>
+    </div>
+
+    <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;min-height:0;">
+      <!-- Member card × 4 -->
+      <div class="card flex col ac" style="gap:12px;padding:20px 16px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--g2);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;color:var(--g6);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="text-align:center;">
+          <div class="t16 fw7 c-dark">이름 이름</div>
+          <div class="t13 c-primary fw6" style="margin-top:2px;">직책 / 역할</div>
+        </div>
+        <div class="hr wfull"></div>
+        <div class="t13 lh16 c-muted" style="text-align:center;">전문 분야 및 역할을 한두 줄로 설명합니다.</div>
+        <div class="badge b-blue" style="margin-top:auto;">전문 분야</div>
+      </div>
+
+      <div class="card flex col ac" style="gap:12px;padding:20px 16px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--g2);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;color:var(--g6);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="text-align:center;">
+          <div class="t16 fw7 c-dark">이름 이름</div>
+          <div class="t13 c-primary fw6" style="margin-top:2px;">직책 / 역할</div>
+        </div>
+        <div class="hr wfull"></div>
+        <div class="t13 lh16 c-muted" style="text-align:center;">전문 분야 및 역할을 한두 줄로 설명합니다.</div>
+        <div class="badge b-teal" style="margin-top:auto;">전문 분야</div>
+      </div>
+
+      <div class="card flex col ac" style="gap:12px;padding:20px 16px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--g2);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;color:var(--g6);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="text-align:center;">
+          <div class="t16 fw7 c-dark">이름 이름</div>
+          <div class="t13 c-primary fw6" style="margin-top:2px;">직책 / 역할</div>
+        </div>
+        <div class="hr wfull"></div>
+        <div class="t13 lh16 c-muted" style="text-align:center;">전문 분야 및 역할을 한두 줄로 설명합니다.</div>
+        <div class="badge b-green" style="margin-top:auto;">전문 분야</div>
+      </div>
+
+      <div class="card flex col ac" style="gap:12px;padding:20px 16px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--g2);border:2px solid var(--g3);display:flex;align-items:center;justify-content:center;color:var(--g6);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div style="text-align:center;">
+          <div class="t16 fw7 c-dark">이름 이름</div>
+          <div class="t13 c-primary fw6" style="margin-top:2px;">직책 / 역할</div>
+        </div>
+        <div class="hr wfull"></div>
+        <div class="t13 lh16 c-muted" style="text-align:center;">전문 분야 및 역할을 한두 줄로 설명합니다.</div>
+        <div class="badge b-purple" style="margin-top:auto;">전문 분야</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">18</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     19  CLOSING / THANK YOU
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Closing / Thank You" id="s19" style="background:var(--dark);">
+  <!-- Top accent -->
+  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:var(--primary);"></div>
+
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--safe-top) var(--pad) var(--safe-bottom);text-align:center;">
+    <div class="t13 wide fw7" style="color:var(--g6);letter-spacing:0.15em;margin-bottom:24px;">THANK YOU</div>
+    <h1 class="t56 fw8 lh11 tight c-white" style="margin-bottom:16px;">감사합니다</h1>
+    <p class="t18 lh16" style="color:var(--g5);max-width:480px;margin-bottom:48px;">
+      질문이나 추가 논의가 필요하시면 편하게 연락 주세요.
+    </p>
+
+    <div class="flex ac g40">
+      <div style="text-align:center;">
+        <div class="t12 wide fw6" style="color:var(--g6);margin-bottom:6px;">EMAIL</div>
+        <div class="t16 fw5 c-white">contact@safeai.kr</div>
+      </div>
+      <div style="width:1px;height:32px;background:var(--g7);"></div>
+      <div style="text-align:center;">
+        <div class="t12 wide fw6" style="color:var(--g6);margin-bottom:6px;">WEBSITE</div>
+        <div class="t16 fw5 c-white">www.safeai.kr</div>
+      </div>
+      <div style="width:1px;height:32px;background:var(--g7);"></div>
+      <div style="text-align:center;">
+        <div class="t12 wide fw6" style="color:var(--g6);margin-bottom:6px;">TEL</div>
+        <div class="t16 fw5 c-white">02-000-0000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decorative rings -->
+  <div style="position:absolute;right:80px;bottom:60px;opacity:0.06;pointer-events:none;">
+    <div style="width:180px;height:180px;border-radius:50%;border:2px solid #fff;"></div>
+    <div style="width:120px;height:120px;border-radius:50%;border:2px solid #fff;position:absolute;top:30px;left:30px;"></div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+  <div class="pg pg-light">19</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     20  COMPANY OVERVIEW
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Company Overview" id="s20">
+  <div style="position:absolute;inset:0;display:flex;">
+    <!-- Left: company identity (55%) -->
+    <div style="width:55%;padding:var(--pad);display:flex;flex-direction:column;justify-content:center;gap:20px;border-right:1.5px solid var(--g3);">
+      <div>
+        <div class="eyebrow g8" style="margin-bottom:12px;"><span class="ep"></span>회사 소개</div>
+        <h2 class="t36 fw8 lh11 tight c-dark" style="margin-bottom:8px;">SafeAI</h2>
+        <div class="t13 fw7 wide c-primary" style="letter-spacing:0.1em;margin-bottom:16px;">AI VISION SAFETY PLATFORM</div>
+        <p class="t14 lh16 c-muted">산업 현장의 안전사고를 인공지능 비전 기술로 예방합니다.<br>실시간 감지부터 데이터 분석까지, 엔드투엔드 안전 솔루션을 제공합니다.</p>
+      </div>
+      <div class="hr"></div>
+      <div class="flex col g12">
+        <div class="flex ac g12">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="t14 c-dark">설립 2019 · AI 비전 기반 산업 안전 전문 기업</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="t14 c-dark">ISO 인증 취득 · 정부 연구개발 과제 수행 기업</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:32px;height:32px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <div class="t14 c-dark">엣지 AI + 클라우드 하이브리드 플랫폼 아키텍처</div>
+        </div>
+      </div>
+      <div class="flex ac g8" style="flex-wrap:wrap;">
+        <div class="badge b-blue">AI Vision</div>
+        <div class="badge b-teal">산업 안전</div>
+        <div class="badge b-green">실시간 분석</div>
+        <div class="badge b-purple">NVR 연동</div>
+      </div>
+    </div>
+    <!-- Right: 3 metric stat cards (45%) -->
+    <div style="flex:1;padding:var(--pad);display:flex;flex-direction:column;gap:16px;justify-content:center;">
+      <div class="card flex ac g20" style="padding:22px 24px;">
+        <div style="width:44px;height:44px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <div class="t36 fw8 c-primary tight lh1">300<span class="t20">+</span></div>
+          <div class="t13 c-muted" style="margin-top:2px;">배포 현장 수</div>
+        </div>
+      </div>
+      <div class="card flex ac g20" style="padding:22px 24px;">
+        <div style="width:44px;height:44px;border-radius:10px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:#0369A1;flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg>
+        </div>
+        <div>
+          <div class="t36 fw8 tight lh1" style="color:#0369A1;">98.7<span class="t20">%</span></div>
+          <div class="t13 c-muted" style="margin-top:2px;">AI 탐지 정확도</div>
+        </div>
+      </div>
+      <div class="card flex ac g20" style="padding:22px 24px;">
+        <div style="width:44px;height:44px;border-radius:10px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;color:#059669;flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div>
+          <div class="t36 fw8 tight lh1" style="color:#059669;">40<span class="t20">%</span></div>
+          <div class="t13 c-muted" style="margin-top:2px;">산업재해 감소율</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">20</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     21  SOLUTION FEATURE  (A-type: dark header + image grid right)
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Solution Feature (A-type)" id="s21">
+  <!-- Dark header strip -->
+  <div style="position:absolute;top:0;left:0;right:0;height:108px;background:var(--primary);display:flex;align-items:center;padding:0 var(--pad);gap:24px;">
+    <div style="flex:1;">
+      <div class="eyebrow g8" style="margin-bottom:8px;color:rgba(255,255,255,0.6);"><span class="ep ep-white"></span>솔루션 소개</div>
+      <h2 class="t28 fw7 lh11 tight c-white">솔루션 제목을 여기에 입력합니다</h2>
+    </div>
+    <img src="assets/safeai_h_white.png" style="height:22px;display:block;flex-shrink:0;">
+  </div>
+
+  <!-- Content area below header -->
+  <div style="position:absolute;top:108px;left:0;right:0;bottom:0;display:flex;padding:28px var(--pad) var(--safe-bottom);gap:36px;">
+    <!-- Left: description + feature list -->
+    <div class="flex col f1 g0" style="min-width:0;">
+      <p class="t14 lh16 c-muted" style="margin-bottom:20px;">솔루션에 대한 전반적인 설명을 2–3줄로 작성합니다. 고객이 얻는 핵심 가치와 적용 방식을 간결하게 설명하세요.</p>
+      <div class="flex col g12 f1">
+        <div class="flex ac g12">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="t14 c-dark">핵심 기능 1 — 구체적인 기능 설명을 작성합니다</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="t14 c-dark">핵심 기능 2 — 구체적인 기능 설명을 작성합니다</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="t14 c-dark">핵심 기능 3 — 구체적인 기능 설명을 작성합니다</div>
+        </div>
+        <div class="flex ac g12">
+          <div style="width:30px;height:30px;border-radius:7px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="t14 c-dark">핵심 기능 4 — 구체적인 기능 설명을 작성합니다</div>
+        </div>
+      </div>
+      <div class="card card-p" style="flex-shrink:0;padding:14px 18px;">
+        <div class="t13 fw7 c-primary" style="margin-bottom:4px;">적용 효과</div>
+        <div class="t13 lh16 c-dark">수치로 표현된 기대 효과: 예) 탐지 정확도 98%↑, 처리 지연 30ms 이하</div>
+      </div>
+    </div>
+
+    <!-- Right: 2 stacked image areas -->
+    <div style="width:420px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;">
+      <div class="img-ph" style="flex:1;">
+        화면 캡처 / 데모 이미지 1<br><span style="font-size:12px;margin-top:4px;display:block;">&lt;img src="assets/screenshot1.png"&gt;로 교체</span>
+      </div>
+      <div class="img-ph" style="flex:1;">
+        화면 캡처 / 데모 이미지 2<br><span style="font-size:12px;margin-top:4px;display:block;">&lt;img src="assets/screenshot2.png"&gt;로 교체</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg">21</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     22  TECHNICAL PROPOSAL  (Dark left / Light right split)
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Technical Proposal (Split)" id="s22">
+  <div style="position:absolute;inset:0;display:flex;">
+    <!-- Left: Challenge + Approach (dark navy) -->
+    <div style="width:42%;background:var(--primary);padding:var(--pad);display:flex;flex-direction:column;justify-content:center;gap:20px;">
+      <div>
+        <div class="t12 wide fw7" style="color:rgba(255,255,255,0.5);letter-spacing:0.15em;margin-bottom:10px;">CHALLENGE</div>
+        <h3 class="t22 fw7 lh12 c-white tight" style="margin-bottom:12px;">현장의 기술적 과제</h3>
+        <p class="t13 lh16" style="color:rgba(255,255,255,0.7);">해결해야 할 기술적·운영적 문제를 명확하게 기술합니다.</p>
+      </div>
+      <div class="flex col g10">
+        <div class="flex as g10">
+          <div style="width:6px;height:6px;min-width:6px;border-radius:50%;background:rgba(255,255,255,0.5);margin-top:7px;"></div>
+          <div class="t13 lh16" style="color:rgba(255,255,255,0.75);">기존 방식의 한계점 1 — 수치 기반 서술 권장</div>
+        </div>
+        <div class="flex as g10">
+          <div style="width:6px;height:6px;min-width:6px;border-radius:50%;background:rgba(255,255,255,0.5);margin-top:7px;"></div>
+          <div class="t13 lh16" style="color:rgba(255,255,255,0.75);">기존 방식의 한계점 2 — 수치 기반 서술 권장</div>
+        </div>
+        <div class="flex as g10">
+          <div style="width:6px;height:6px;min-width:6px;border-radius:50%;background:rgba(255,255,255,0.5);margin-top:7px;"></div>
+          <div class="t13 lh16" style="color:rgba(255,255,255,0.75);">기존 방식의 한계점 3</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.15);padding-top:16px;">
+        <div class="t12 wide fw7" style="color:rgba(255,255,255,0.5);letter-spacing:0.12em;margin-bottom:8px;">APPROACH</div>
+        <div class="t13 lh16" style="color:rgba(255,255,255,0.8);">SafeAI의 기술 접근 방향을 한두 문장으로 요약합니다.</div>
+      </div>
+    </div>
+
+    <!-- Right: Solution specs + comparison table -->
+    <div style="flex:1;background:var(--white);padding:var(--pad);display:flex;flex-direction:column;gap:18px;">
+      <div>
+        <div class="t12 wide fw7 c-primary" style="letter-spacing:0.15em;margin-bottom:8px;">SOLUTION</div>
+        <h3 class="t22 fw7 lh12 c-dark tight">SafeAI 기술 제안</h3>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;">
+        <table class="tbl" style="font-size:13px;">
+          <thead>
+            <tr>
+              <th style="width:110px;">구분</th>
+              <th>기존 방식</th>
+              <th>SafeAI 제안</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fw6 c-dark">감지 방식</td>
+              <td class="c-muted">방식 설명</td>
+              <td class="fw6 c-primary">SafeAI 방식</td>
+            </tr>
+            <tr>
+              <td class="fw6 c-dark">처리 속도</td>
+              <td class="c-muted">기존 수치</td>
+              <td class="fw6 c-primary">개선 수치</td>
+            </tr>
+            <tr>
+              <td class="fw6 c-dark">정확도</td>
+              <td class="c-muted">기존 수치</td>
+              <td class="fw6 c-primary">개선 수치</td>
+            </tr>
+            <tr>
+              <td class="fw6 c-dark">운영 비용</td>
+              <td class="c-muted">기존 비용</td>
+              <td class="fw6 c-primary">절감 효과</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card card-p flex ac jb" style="flex-shrink:0;padding:14px 18px;">
+        <div class="t13 fw7 c-primary">기대 효과 요약</div>
+        <div class="t13 c-dark">정확도 ↑ &nbsp; 비용 ↓ &nbsp; 운영 효율 ↑</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">22</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     23  R&D PROJECT BACKGROUND
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="R&amp;D Project Background" id="s23">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;">
+    <!-- Top: project info header -->
+    <div style="flex-shrink:0;background:var(--g1);border-bottom:1.5px solid var(--g3);padding:18px var(--pad);display:flex;align-items:center;gap:20px;">
+      <div style="flex:1;">
+        <div class="eyebrow g8" style="margin-bottom:6px;"><span class="ep"></span>연구개발 과제</div>
+        <h2 class="t20 fw7 tight c-dark">과제명을 여기에 입력합니다</h2>
+      </div>
+      <div class="flex ac g8" style="flex-shrink:0;">
+        <div class="badge b-blue">주관기관명</div>
+        <div class="badge b-teal">협약기간: 2024–2026</div>
+        <div class="badge b-green">정부과제</div>
+      </div>
+      <img src="assets/safeai_v_blue.png" style="height:32px;display:block;flex-shrink:0;">
+    </div>
+
+    <!-- Body: 2×2 objectives grid -->
+    <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;min-height:0;">
+      <div style="padding:22px 28px;display:flex;gap:16px;border-right:1.5px solid var(--g3);border-bottom:1.5px solid var(--g3);">
+        <div style="width:36px;height:36px;min-width:36px;border-radius:8px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);margin-top:2px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </div>
+        <div>
+          <div class="t16 fw7 c-dark" style="margin-bottom:8px;">연구 목표 1</div>
+          <div class="t13 lh16 c-muted">목표에 대한 구체적인 설명을 작성합니다. 정량적 목표 수치를 포함하면 더욱 효과적입니다.</div>
+        </div>
+      </div>
+      <div style="padding:22px 28px;display:flex;gap:16px;border-bottom:1.5px solid var(--g3);">
+        <div style="width:36px;height:36px;min-width:36px;border-radius:8px;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:#0369A1;margin-top:2px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="6" height="6"/><path d="M15 9V5h-2M9 9V5h2M9 15v4h2M15 15v4h-2M5 9h4M5 15h4M19 9h-4M19 15h-4"/></svg>
+        </div>
+        <div>
+          <div class="t16 fw7 c-dark" style="margin-bottom:8px;">연구 목표 2</div>
+          <div class="t13 lh16 c-muted">목표에 대한 구체적인 설명을 작성합니다. 정량적 목표 수치를 포함하면 더욱 효과적입니다.</div>
+        </div>
+      </div>
+      <div style="padding:22px 28px;display:flex;gap:16px;border-right:1.5px solid var(--g3);">
+        <div style="width:36px;height:36px;min-width:36px;border-radius:8px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;color:#059669;margin-top:2px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <div class="t16 fw7 c-dark" style="margin-bottom:8px;">연구 목표 3</div>
+          <div class="t13 lh16 c-muted">목표에 대한 구체적인 설명을 작성합니다. 정량적 목표 수치를 포함하면 더욱 효과적입니다.</div>
+        </div>
+      </div>
+      <div style="padding:22px 28px;display:flex;gap:16px;">
+        <div style="width:36px;height:36px;min-width:36px;border-radius:8px;background:#FEF3C7;display:flex;align-items:center;justify-content:center;color:#D97706;margin-top:2px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div>
+          <div class="t16 fw7 c-dark" style="margin-bottom:8px;">연구 목표 4</div>
+          <div class="t13 lh16 c-muted">목표에 대한 구체적인 설명을 작성합니다. 정량적 목표 수치를 포함하면 더욱 효과적입니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: core technology keywords -->
+    <div style="flex-shrink:0;background:var(--g1);border-top:1.5px solid var(--g3);padding:12px var(--pad);display:flex;align-items:center;gap:16px;">
+      <div class="t12 fw7 c-muted wide" style="letter-spacing:0.1em;flex-shrink:0;">핵심 기술</div>
+      <div class="flex ac g8">
+        <div class="badge b-blue" style="font-size:12px;">딥러닝</div>
+        <div class="badge b-teal" style="font-size:12px;">컴퓨터 비전</div>
+        <div class="badge b-green" style="font-size:12px;">엣지 AI</div>
+        <div class="badge b-purple" style="font-size:12px;">영상 분석</div>
+        <div class="badge b-amber" style="font-size:12px;">실시간 처리</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pg">23</div>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════
+     24  CLIENT / PARTNER LOGOS
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="Client / Partner Logos" id="s24">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;">
+      <div>
+        <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>레퍼런스</div>
+        <h2 class="t36 fw7 tight c-primary">함께하는 기업들</h2>
+      </div>
+      <div class="flex ac g8">
+        <div style="font-size:36px;font-weight:800;color:var(--primary);letter-spacing:-0.03em;line-height:1;">50<span style="font-size:22px;font-weight:800;">+</span></div>
+        <div class="t13 c-muted">고객사</div>
+      </div>
+    </div>
+
+    <!-- 3×2 logo placeholder grid -->
+    <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:16px;min-height:0;">
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+      <div class="img-ph flex ac jc"><span class="t14 c-muted fw5">고객사 로고</span></div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">24</div>
+</section>
+
+
+</deck-stage>
+
+<script src="deck-stage.js"></script>
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Standalone controls (host-less use). deck-stage.js auto-scales the
+   canvas to the viewport, so entering true fullscreen fills the screen.
+     F — toggle browser fullscreen (clean present mode: rail+nav hidden)
+     T — toggle thumbnail rail
+   Arrows / Space / Home / End / number keys / R are handled by deck-stage.
+─────────────────────────────────────────────────────────────── */
+(function () {
+  var railOn = true;
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(function () {});
+      }
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+  function toggleRail() {
+    railOn = !railOn;
+    try { window.postMessage({ type: '__deck_rail_visible', on: railOn }, '*'); } catch (e) {}
+  }
+  function presenting(on) {
+    try { window.postMessage({ __omelette_presenting: on }, '*'); } catch (e) {}
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+    else if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleRail(); }
+  });
+
+  // Clean presentation: hide rail + nav chrome whenever we're fullscreen.
+  document.addEventListener('fullscreenchange', function () {
+    presenting(!!document.fullscreenElement);
+  });
+
+  // Add F / T hints into deck-stage's floating overlay (next to "Reset R"),
+  // reusing the component's .btn.reset + .kbd styling. deck-stage.js untouched.
+  function hintBtn(label, key, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn reset deck-hint';
+    b.title = label + ' (' + key + ')';
+    b.innerHTML = label + '<span class="kbd">' + key + '</span>';
+    b.addEventListener('click', function (e) { e.preventDefault(); onClick(); });
+    return b;
+  }
+  function injectHints() {
+    var ds = document.querySelector('deck-stage');
+    if (!ds || !ds.shadowRoot) return false;
+    var overlay = ds.shadowRoot.querySelector('.overlay');
+    if (!overlay) return false;
+    if (overlay.querySelector('.deck-hint')) return true; // already injected
+    var div = document.createElement('span');
+    div.className = 'divider';
+    overlay.append(div,
+      hintBtn('전체화면', 'F', toggleFullscreen),
+      hintBtn('썸네일', 'T', toggleRail));
+    return true;
+  }
+  // Overlay is built in deck-stage's connectedCallback — retry until ready.
+  var tries = 0;
+  (function tryInject() {
+    if (injectHints() || tries++ > 40) return;
+    setTimeout(tryInject, 50);
+  })();
+})();
+</script>
+</body>
+</html>
