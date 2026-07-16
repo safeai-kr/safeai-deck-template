@@ -24,16 +24,36 @@ SafeAI 팀 HTML 슬라이드 템플릿. **수정 전 반드시 아래 두 파일
 인쇄(@page 1280×720 주입 → 슬라이드당 1페이지) · 하단 네비 오버레이.
 
 **조작**: `←→`/`Space`/`PgUp/Dn` 이동, `Home`/`End`, `1~9` 점프, `R` 리셋,
-`F` 전체화면 토글, `T` 썸네일 레일 토글. (`F`·`T`는 deck.html 내장 스크립트)
+`F` 전체화면 토글, `T` 썸네일 레일 토글, **`E` 직접 편집 모드 토글**(`deck-editor.js` 포함 시).
+(`F`·`T`는 deck.html 내장 스크립트, `E`는 `deck-editor.js`)
 
 > ⚠️ `<deck-stage>` 직속 자식은 `<section>`과 주석만. `<p class="slide-label">` 같은
 > 요소를 넣지 말 것 — 슬라이드로 오인됩니다. 라벨은 `data-label` 속성으로.
+
+### 직접 편집 모드 — deck-editor.js (bolt-on)
+
+`deck-stage.js`를 수정하지 않고 그 위에 얹는 WYSIWYG 편집 레이어. 덱 HTML에
+`<script src="deck-editor.js"></script>`를 (`deck-stage.js` 다음에) **한 줄 추가**하면 켜진다.
+
+```html
+<script src="deck-stage.js"></script>
+<script src="deck-editor.js"></script>   <!-- ← 이 줄이 편집 모드를 얹어줌 -->
+```
+
+- **`E`** 또는 우하단 `편집` 버튼으로 진입/종료 → 요소 드래그 이동·핸들 리사이즈,
+  텍스트 더블클릭 인라인 수정, 방향키 미세 이동, `Delete` 삭제, **`Cmd/Ctrl+S`** 저장.
+- 이 줄이 **없으면** 보여주기 전용(편집 불가). 발표만 할 땐 `E`를 안 누르면 편집 모드는 안 켜지고,
+  `F`(전체화면) 시 편집 UI는 자동 숨김.
+- 첫 이동/크기/회전 시 그 슬라이드만 `flow→absolute`로 lazy bake됨(레이아웃 특성).
+- **새 덱 생성 시** `deck-stage.js`와 함께 `deck-editor.js` include도 챙길 것.
+- `deck-editor.js`는 팀 공용 편집기 — 덱별로 포크·수정하지 말 것. 편집기 자체 버그 수정은
+  `tests/editor.spec.js`(Playwright)로 회귀 테스트를 남긴다.
 
 ---
 
 ## 핵심 규칙
 
-1. **단일 파일** `deck.html` (+ `deck-stage.js`). 이미지는 `assets/`에만.
+1. **단일 파일** `deck.html` (+ `deck-stage.js`, 편집 모드용 `deck-editor.js`). 이미지는 `assets/`에만.
 2. **로고**: 다크 배경 `safeai_h_white.png` / 라이트 배경 `safeai_v_blue.png`. 텍스트 대체 금지.
 3. **이모지 금지** → Feather 스타일 인라인 SVG (viewBox="0 0 24 24", stroke="currentColor").
 4. **PDF 안전 금지 패턴**: `background-clip:text`, `filter:blur`, `backdrop-filter`, `mask-image`,

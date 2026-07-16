@@ -187,6 +187,10 @@
       st.right = 'auto'; st.bottom = 'auto';
       st.margin = '0';
       st.boxSizing = 'border-box';
+      // bake 가 sizing 을 인계받으므로, 잔여 min/max 제약을 해제한다.
+      // (가독성용 max-width 가 남으면 리사이즈로 width 를 키워도 캡에 걸려 렌더 폭이 안 늘어남)
+      st.maxWidth = 'none'; st.minWidth = '0';
+      st.maxHeight = 'none'; st.minHeight = '0';
       // translate 류는 left/top 에 흡수했으니 제거(이중 적용 방지), 회전만 보존.
       st.transform = m.ang ? 'rotate(' + round(m.ang) + 'deg)' : '';
     }
