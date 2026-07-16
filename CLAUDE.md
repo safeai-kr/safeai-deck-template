@@ -35,15 +35,27 @@
 | `R` | 첫 슬라이드로 리셋 |
 | **`F`** | 전체화면 토글 (deck.html 내장 스크립트) |
 | **`T`** | 썸네일 레일 토글 (deck.html 내장 스크립트) |
+| **`E`** | 직접 편집 모드 토글 (`deck-editor.js` 포함 시) |
 
 > ⚠️ `<deck-stage>`의 직속 자식은 `<section>`과 주석만 가능. 다른 요소(`<p>`, `<div>`)를
 > 넣으면 그것도 슬라이드로 인식됩니다. 슬라이드 제목/라벨은 `data-label` 속성으로 지정.
+
+### 직접 편집 모드 — deck-editor.js (bolt-on)
+
+`deck-stage.js`를 수정하지 않고 그 위에 얹는 WYSIWYG 편집 레이어입니다. 덱 HTML에
+`<script src="deck-editor.js"></script>` **한 줄만 추가**하면 켜집니다 (`deck-stage.js` 다음에).
+
+- **`E`** 또는 우하단 `편집` 버튼으로 진입/종료 → 요소 드래그 이동·핸들 리사이즈,
+  텍스트 더블클릭 인라인 수정, 방향키 미세 이동, `Delete` 삭제, **`Cmd/Ctrl+S`** 저장.
+- 이 줄이 **없으면** 보여주기 전용(편집 불가). `deck-editor.js` 파일 자체는 수정 금지(레퍼런스 유지).
+- 발표만 할 땐 `E`를 누르지 않으면 편집 모드는 켜지지 않고, `F`(전체화면) 시 편집 UI는 자동 숨김.
+- **새 덱 생성 시** `deck-stage.js`와 함께 `deck-editor.js` include도 챙길 것.
 
 ---
 
 ## 작업 전 필수 확인
 
-1. **단일 파일**: 모든 슬라이드는 `deck.html` 하나에 있습니다. (+ `deck-stage.js`)
+1. **단일 파일**: 모든 슬라이드는 `deck.html` 하나에 있습니다. (+ `deck-stage.js`, 편집 모드용 `deck-editor.js`)
 2. **이미지**: `assets/` 폴더에만 저장. 외부 URL 사용 금지.
 3. **로고**: `safeai_h_white.png` (다크 배경) / `safeai_v_blue.png` (라이트 배경). 텍스트 대체 금지.
 4. **이모지 금지**: SVG 아이콘만 사용 (viewBox="0 0 24 24", stroke="currentColor").
