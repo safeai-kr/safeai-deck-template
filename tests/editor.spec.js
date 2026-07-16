@@ -268,3 +268,131 @@ test('저장 왕복 — 직렬화 결과를 새 파일로 로드 시 편집 반�
     fs.unlinkSync(tmp);
   }
 });
+
+/* ── 코드리뷰 후속 회귀 테스트 (PR #1 리뷰 반영) ───────────────── */
+
+// 리뷰 HIGH-1: 드래그 이동이 undo/dirty 에 기록 안 되던 버그
+test('드래그 이동 → Undo 스택·dirty 기록 + Cmd+Z 로 flow 복원', async ({ page }) => {
+  await page.evaluate(() => {
+    document.querySelectorAll('deck-stage > section').forEach((s) => s.removeAttribute('data-deck-active'));
+    document.getElementById('s05').setAttribute('data-deck-active', '');
+    window.__deckEditor.setMode(true);
+  });
+  const target = await page.evaluate(() => {
+    const E = window.__deckEditor;
+    const u = E.collectUnits(E.activeSlide()).find((x) => x.textContent.trim() && x.tagName !== 'IMG');
+    u.setAttribute('data-rg', '1');
+    const r = u.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+  });
+  await page.mouse.move(target.x, target.y);
+  await page.mouse.down();
+  await page.mouse.move(target.x + 60, target.y + 30, { steps: 10 });
+  await page.mouse.up();
+  const after = await page.evaluate(() => ({
+    undoLen: window.__deckEditor.S.undo.length,
+    dirty: window.__deckEditor.S.dirty,
+  }));
+  expect(after.undoLen).toBeGreaterThan(0);   // 드래그가 undo 에 기록됨
+  expect(after.dirty).toBe(true);             // dirty 세팅 → beforeunload 경고 살아있음
+  // Cmd/Ctrl+Z → bake 이전 flow 상태로 복원 (슬라이드 baked 마커까지)
+  await page.keyboard.press('Control+z');
+  const restored = await page.evaluate(() => {
+    const slide = window.__deckEditor.activeSlide();
+    const u = slide.querySelector('[data-rg]');
+    return {
+      slideBaked: slide.dataset.deBaked !== undefined,
+      unitPos: u ? getComputedStyle(u).position : null,
+    };
+  });
+  expect(restored.slideBaked).toBe(false);    // baked 마커 복원
+  expect(restored.unitPos).not.toBe('absolute'); // flow 로 복원
+});
+
+// 리뷰 MEDIUM-4: 첫 리사이즈의 undo 가 "베이크 직후" 중간 상태로 복원되던 버그
+test('리사이즈 → Undo 시 bake 이전 flow 상태로 복원', async ({ page }) => {
+  await page.evaluate(() => {
+    document.querySelectorAll('deck-stage > section').forEach((s) => s.removeAttribute('data-deck-active'));
+    document.getElementById('s05').setAttribute('data-deck-active', '');
+    const E = window.__deckEditor;
+    E.setMode(true);
+    const u = E.collectUnits(E.activeSlide()).find((x) => x.textContent.trim() && x.tagName !== 'IMG');
+    u.setAttribute('data-rz', '1');
+    E.select(u); E.positionOverlay();
+  });
+  const h = await page.locator('.de-h[data-dir="e"]').boundingBox();
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(h.x + 50, h.y, { steps: 6 });
+  await page.mouse.up();
+  const mid = await page.evaluate(() => {
+    const u = document.querySelector('[data-rz]');
+    return { pos: getComputedStyle(u).position, undoLen: window.__deckEditor.S.undo.length };
+  });
+  expect(mid.pos).toBe('absolute');
+  expect(mid.undoLen).toBeGreaterThan(0);
+  await page.keyboard.press('Control+z');
+  const restored = await page.evaluate(() => {
+    const slide = window.__deckEditor.activeSlide();
+    return {
+      slideBaked: slide.dataset.deBaked !== undefined,
+      pos: getComputedStyle(slide.querySelector('[data-rz]')).position,
+    };
+  });
+  expect(restored.slideBaked).toBe(false);
+  expect(restored.pos).not.toBe('absolute');  // flow — 중간(baked) 상태가 아님
+});
+
+// bake 가 기존 회전을 지우던 버그 (재로드된 저장 파일 시나리오)
+test('회전된 요소가 bake 후에도 회전 유지', async ({ page }) => {
+  const res = await page.evaluate(() => {
+    const E = window.__deckEditor;
+    E.setMode(true);
+    const slide = E.activeSlide();
+    const u = E.collectUnits(slide).find((x) => x.textContent.trim() && x.tagName !== 'IMG');
+    const preW = u.getBoundingClientRect();
+    u.style.transform = 'rotate(10deg)';
+    E.bakeSlide(slide);
+    return {
+      transform: u.style.transform,
+      widthSane: Math.abs(parseFloat(u.style.width) * E.scaleOf(slide) - preW.width) < 3, // 회전 bbox 아닌 레이아웃 폭
+    };
+  });
+  expect(res.transform).toMatch(/rotate\(10deg\)/);
+  expect(res.widthSane).toBe(true);
+});
+
+// 리뷰 HIGH-2: 발표(전체화면) 중 편집 버튼 노출
+test('발표 모드 신호 시 편집 UI 전부 숨김, 종료 시 복귀', async ({ page }) => {
+  await page.evaluate(() => window.__deckEditor.setMode(true));
+  await expect(page.locator('.de-editbtn')).toBeVisible();
+  await page.evaluate(() => window.postMessage({ __omelette_presenting: true }, '*'));
+  await expect(page.locator('.de-editbtn')).toBeHidden();
+  const off = await page.evaluate(() => window.__deckEditor.S.on);
+  expect(off).toBe(false);                     // 편집 모드도 종료됨 (툴바·핸들 정리)
+  await page.evaluate(() => window.postMessage({ __omelette_presenting: false }, '*'));
+  await expect(page.locator('.de-editbtn')).toBeVisible();
+});
+
+// 리뷰 MEDIUM-3: 텍스트 편집 중 인쇄 시 점선 아웃라인 누출
+test('편집 중 인쇄 — 아웃라인 숨김(CSS) + beforeprint 로 편집 상태 정리', async ({ page }) => {
+  await page.evaluate(() => {
+    const E = window.__deckEditor;
+    E.setMode(true);
+    const u = E.collectUnits(E.activeSlide()).find((x) => x.textContent.trim() && x.tagName !== 'IMG');
+    u.setAttribute('data-pr', '1');
+    E.startEdit(u);
+  });
+  await page.emulateMedia({ media: 'print' });
+  const outline = await page.evaluate(() =>
+    getComputedStyle(document.querySelector('[data-pr]')).outlineStyle);
+  expect(outline).toBe('none');                // print 매체에서 점선 제거
+  await page.emulateMedia({ media: 'screen' });
+  await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+  const cleaned = await page.evaluate(() => ({
+    editing: document.querySelector('[data-pr]').getAttribute('contenteditable'),
+    sel: window.__deckEditor.S.sel,
+  }));
+  expect(cleaned.editing).toBeNull();          // 미확정 텍스트 커밋됨
+  expect(cleaned.sel).toBeNull();              // 선택 해제됨
+});

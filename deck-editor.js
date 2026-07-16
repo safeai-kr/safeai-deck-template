@@ -154,16 +154,23 @@
     if (slide.dataset.deBaked !== undefined) return;
     const units = collectUnits(slide);
     const s = scaleOf(slide);
-    // 전부 먼저 측정(pre-bake), 각 유닛의 실제 컨테이닝 블록 기준
+    // 전부 먼저 측정(pre-bake), 각 유닛의 실제 컨테이닝 블록 기준.
+    // 회전(rotate)은 잠시 벗기고 측정 — 회전된 bbox 는 부풀어서 좌표·폭이 틀어진다.
+    // (회전은 중심 기준이라 벗겨도 중심이 같아, 측정한 레이아웃 rect + rotate 재적용 = 동일한 시각 결과.)
+    // translate 류는 시각 위치 그대로 측정해 left/top 에 흡수시킨다 (기존 동작).
     const measured = units.map((el) => {
+      const ang = getAngle(el);
+      const prevT = el.style.transform;
+      if (ang) el.style.transform = prevT.replace(/rotate\([-\d.]+deg\)\s*/, '');
       const cb = containingBlock(el, slide);
       const ur = el.getBoundingClientRect();
       const cr = cb.getBoundingClientRect();
       const ccs = getComputedStyle(cb);
       const bl = parseFloat(ccs.borderLeftWidth) || 0;
       const bt = parseFloat(ccs.borderTopWidth) || 0;
+      if (ang) el.style.transform = prevT;
       return {
-        el,
+        el, ang,
         left: (ur.left - cr.left) / s - bl,
         top: (ur.top - cr.top) / s - bt,
         width: ur.width / s,
@@ -180,9 +187,8 @@
       st.right = 'auto'; st.bottom = 'auto';
       st.margin = '0';
       st.boxSizing = 'border-box';
-      // measured rect 는 기존 transform(예: translateY(-50%) 중앙정렬)을 이미 반영 →
-      // left/top 을 절대값으로 굳혔으니 inline transform 은 제거(이중 적용 방지).
-      st.transform = '';
+      // translate 류는 left/top 에 흡수했으니 제거(이중 적용 방지), 회전만 보존.
+      st.transform = m.ang ? 'rotate(' + round(m.ang) + 'deg)' : '';
     }
     slide.dataset.deBaked = '';
   };
@@ -191,7 +197,9 @@
   /* ── 히스토리 ─────────────────────────────────────────── */
   const snapshot = () => {
     const slide = activeSlide();
-    return slide ? { id: slideKey(slide), html: slide.innerHTML } : null;
+    // baked 마커는 slide 요소 자체의 속성이라 innerHTML 에 안 담김 — 따로 기록해야
+    // bake 이전 스냅샷으로 undo 했을 때 마커도 함께 되돌아간다.
+    return slide ? { id: slideKey(slide), html: slide.innerHTML, baked: slide.dataset.deBaked !== undefined } : null;
   };
   const slideKey = (slide) => slide.id || slide.getAttribute('data-deck-slide') || '';
   const pushUndo = () => {
@@ -207,9 +215,10 @@
     if (!snap) return;
     const slide = activeSlide();
     if (!slide || slideKey(slide) !== snap.id) return;
-    toStack.push({ id: snap.id, html: slide.innerHTML });
+    toStack.push({ id: snap.id, html: slide.innerHTML, baked: slide.dataset.deBaked !== undefined });
     deselect();
     slide.innerHTML = snap.html;
+    if (snap.baked) slide.dataset.deBaked = ''; else delete slide.dataset.deBaked;
     markDirty();
   };
   const undo = () => restore(S.undo, S.redo);
@@ -252,6 +261,8 @@
     .de-status.on{display:block}
     section[data-de-editing]{cursor:default}
     .de-editing-el{outline:1.5px dashed #2A38B0;outline-offset:2px}
+    /* 편집 확정 전 Cmd+P — 점선 아웃라인이 PDF 에 찍히지 않게 (beforeprint 정리의 보험) */
+    @media print{ .de-editing-el{ outline:none !important; } }
     `;
     const st = document.createElement('style');
     st.id = 'de-style';
@@ -484,13 +495,15 @@
 
     if (rot && S.sel) {
       e.preventDefault();
+      pushUndo();               // bake 전 상태 스냅샷 — undo 시 flow 복원
+      bakeSlide(slide);         // absolute 좌표 위에서 회전 (이후 bake 가 회전을 지우는 일 방지)
       const r = S.sel.getBoundingClientRect();
       S.drag = { mode: 'rotate', cx: r.left + r.width / 2, cy: r.top + r.height / 2, start: getAngle(S.sel) };
-      pushUndo();
       return;
     }
     if (h && S.sel) {
       e.preventDefault();
+      pushUndo();               // bake 전 상태 스냅샷 (bake 후에 찍으면 undo 가 중간 상태로 복원됨)
       bakeSlide(slide);
       const st = S.sel.style;
       S.drag = {
@@ -500,7 +513,6 @@
         W: S.sel.offsetWidth, H: S.sel.offsetHeight,
         ang: getAngle(S.sel),
       };
-      pushUndo();
       return;
     }
     // 슬라이드 내부 클릭 → 선택 or 이동
@@ -531,6 +543,9 @@
       return;
     }
     if (d.mode === 'move') {
+      // 실제로 움직이기 시작한 첫 프레임에만 기록 — 단순 클릭 선택은 undo 스택을 오염시키지 않음.
+      // pushUndo 가 bake 보다 먼저라 undo 시 flow 상태로 복원되고, dirty 도 여기서 세팅된다.
+      if (!d.pushed) { d.pushed = true; pushUndo(); }
       if (d.willBake) { bakeSlide(d.slide); d.willBake = false; }
       if (d.L0 === undefined) { d.L0 = parseFloat(S.sel.style.left) || 0; d.T0 = parseFloat(S.sel.style.top) || 0; }
       const dx = (e.clientX - d.sx) / d.s, dy = (e.clientY - d.sy) / d.s;
@@ -741,6 +756,19 @@
     window.addEventListener('beforeunload', (e) => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
     // 슬라이드 전환 시 재스코프
     stage().addEventListener('slidechange', () => { deselect(); });
+    // 발표 모드(F 전체화면) — deck.html 이 fullscreenchange 때 쏘는 presenting 신호 구독
+    // + fullscreenchange 폴백. 편집 UI 를 전부 숨겨 "클린 프레젠테이션" 계약 유지.
+    const setPresenting = (on) => {
+      if (on && S.on) setMode(false);       // 편집 중이었으면 종료 (툴바·핸들·상태바 정리)
+      editBtn.style.display = on ? 'none' : '';
+    };
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (d && typeof d === 'object' && '__omelette_presenting' in d) setPresenting(!!d.__omelette_presenting);
+    });
+    document.addEventListener('fullscreenchange', () => setPresenting(!!document.fullscreenElement));
+    // 인쇄 직전 편집 상태 정리 — 미확정 텍스트 커밋 + 선택 해제 (점선 아웃라인 방지)
+    window.addEventListener('beforeprint', () => deselect());
     // 첫 저장 시 폴더 연결 유도
     editBtn.addEventListener('contextmenu', (e) => { e.preventDefault(); connectDir(); });
 
