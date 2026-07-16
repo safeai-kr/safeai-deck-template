@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  SafeAI Slide Template  v1.0                                 ║
+  ║  PDF-safe HTML presentation · 1280×720 (16:9)               ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  HOW TO USE  (deck-stage.js 구동 — docs/design-system.md 참고)║
+  ║  1. <deck-stage> 안에 <section class="slide" data-label>로 추가 ║
+  ║  2. 제목은 c-primary(브랜드 블루), 다크 슬라이드는 var(--dark) ║
+  ║  3. 조작: ←→ 이동 · F 전체화면 · T 썸네일레일 · 1~9 점프       ║
+  ║  4. PDF: Cmd/Ctrl+P → PDF로 저장 (용지 1280×720 자동, 손대지마)║
+  ║  5. 좌측 썸네일 레일에서 클릭/드래그/우클릭으로 슬라이드 관리   ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  PDF-SAFE RULES — NEVER USE:                                 ║
+  ║  ✗ background-clip: text  → use color:#hex directly          ║
+  ║  ✗ box-shadow with rgba color → rgba(0,0,0,.N) only          ║
+  ║  ✗ filter: blur() on decorative divs → remove or display:none║
+  ║  ✗ mask-image → use opacity instead                          ║
+  ║  ✗ ::before/after { content: none } → remove the rule        ║
+  ║  ✗ backdrop-filter: blur() → solid bg + opacity combo        ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>명세서를 API로 만드는 최소 절차</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+deck-stage:not(:defined){ visibility:hidden; }
+
+/* ═══════════════════════════════════════════════════════
+   0. DESIGN TOKENS  — edit these to match your brand
+═══════════════════════════════════════════════════════ */
+:root {
+  /* Brand colors — SafeAI brand blue (밝은 블루 · 제목/헤더/아이콘/액센트) */
+  --primary:       #3242C6;
+  --primary-dark:  #2937A7;
+  --primary-light: #E1E9F7;
+  --primary-mid:   #2A38B0;
+  --accent:        #0EA5E9;
+  --accent-light:  #E0F2FE;
+  --success:       #10B981;
+  --warning:       #F59E0B;
+  --danger:        #EF4444;
+  --purple:        #7C3AED;
+
+  /* Neutrals */
+  --dark:  #1B2456;  /* 다크 슬라이드 배경 — navy (less black) */
+  --ink:   #222A35;  /* 본문 near-black slate */
+  --g9:    #1E293B;
+  --g8:    #334155;
+  --g7:    #475569;
+  --g6:    #64748B;
+  --g5:    #94A3B8;
+  --g4:    #CBD5E1;
+  --g3:    #E2E8F0;
+  --g2:    #F1F5F9;
+  --g1:    #F8FAFC;
+  --white: #FFFFFF;
+
+  /* Layout */
+  --pad:  52px;
+  --safe-top:    76px; /* min padding-top for content areas — clears .logo-wrap (top:26px + h:26px + 24px gap) */
+  --safe-bottom: 52px; /* min padding-bottom for content areas — clears .pg (bottom:22px) */
+  --r:    16px;
+  --rsm:  8px;
+  --rfull:9999px;
+
+  /* Font */
+  --font: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════
+   1. RESET
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+img { display: block; max-width: 100%; }
+
+/* =====================================================
+   2. PAGE SHELL  — deck-stage.js drives layout / nav / print
+===================================================== */
+html, body { margin:0; padding:0; background:#0c0c14; }
+body { font-family: var(--font); -webkit-font-smoothing:antialiased; }
+
+/* =====================================================
+   3. SLIDE SHELL  1280 x 720
+   deck-stage absolutely-positions each <section class="slide">
+===================================================== */
+.slide {
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  background: var(--white);
+}
+
+/* ═══════════════════════════════════════════════════════
+   4. GLOBAL CHROME (page number, logo, eyebrow)
+═══════════════════════════════════════════════════════ */
+.pg {
+  position: absolute;
+  bottom: 22px;
+  right: var(--pad);
+  font-size: 12px;
+  color: var(--g5);
+  font-weight: 500;
+}
+.pg-light { color: rgba(255,255,255,.4); }
+
+.logo-wrap {
+  position: absolute;
+  top: 26px;
+  right: var(--pad);
+}
+.logo-text {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--dark);
+}
+.logo-text-white { color: var(--white); }
+
+/* Eyebrow — PDF-safe: uses real <span> pill, not ::before */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.ep {  /* eyebrow pill — real element, not ::before */
+  display: inline-block;
+  width: 24px; height: 4px;
+  background: var(--primary);
+  border-radius: var(--rfull);
+  flex-shrink: 0;
+}
+.ep-white { background: rgba(255,255,255,.7); }
+.ep-accent { background: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════
+   5. TYPOGRAPHY SCALE
+═══════════════════════════════════════════════════════ */
+.t56 { font-size:56px; } .t44 { font-size:44px; } .t36 { font-size:36px; }
+.t28 { font-size:28px; } .t22 { font-size:22px; } .t20 { font-size:20px; }
+.t18 { font-size:18px; } .t16 { font-size:16px; } .t14 { font-size:14px; }
+.t13 { font-size:13px; } .t12 { font-size:12px; }
+.fw8{font-weight:800;} .fw7{font-weight:700;} .fw6{font-weight:600;} .fw5{font-weight:500;}
+.lh1{line-height:1;} .lh11{line-height:1.1;} .lh12{line-height:1.2;}
+.lh14{line-height:1.4;} .lh16{line-height:1.6;}
+.tight{letter-spacing:-0.02em;} .wide{letter-spacing:0.06em;}
+
+.c-primary{color:var(--primary);} .c-accent{color:var(--accent);}
+.c-dark{color:var(--ink);} .c-muted{color:var(--g6);}
+.c-white{color:var(--white);} .c-success{color:var(--success);}
+.c-warning{color:var(--warning);} .c-danger{color:var(--danger);}
+
+/* ═══════════════════════════════════════════════════════
+   6. LAYOUT UTILITIES
+═══════════════════════════════════════════════════════ */
+.flex{display:flex;} .col{flex-direction:column;}
+.ac{align-items:center;} .as{align-items:flex-start;} .ae{align-items:flex-end;}
+.jc{justify-content:center;} .jb{justify-content:space-between;}
+.f1{flex:1;} .minh0{min-height:0;} .wfull{width:100%;} .hfull{height:100%;}
+.g4{gap:4px;} .g8{gap:8px;} .g12{gap:12px;} .g16{gap:16px;} .g20{gap:20px;}
+.g24{gap:24px;} .g32{gap:32px;} .g40{gap:40px;} .g48{gap:48px;}
+.pad{padding:var(--pad);} .padx{padding-left:var(--pad);padding-right:var(--pad);}
+.pady{padding-top:var(--pad);padding-bottom:var(--pad);}
+
+/* ═══════════════════════════════════════════════════════
+   7. COMPONENT LIBRARY
+═══════════════════════════════════════════════════════ */
+
+/* Badge */
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:5px 14px; border-radius:var(--rfull);
+  font-size:13px; font-weight:600;
+}
+.b-blue  {background:var(--primary-light);color:var(--primary);}
+.b-teal  {background:var(--accent-light);color:#0369A1;}
+.b-green {background:#ECFDF5;color:#059669;}
+.b-amber {background:#FFFBEB;color:#B45309;}
+.b-red   {background:#FEF2F2;color:#B91C1C;}
+.b-dark  {background:var(--g9);color:var(--white);}
+.b-purple{background:#F5F3FF;color:var(--purple);}
+
+/* Card */
+.card {
+  background:var(--g1); border:1.5px solid var(--g3);
+  border-radius:var(--r); padding:24px;
+  display:flex; flex-direction:column;
+}
+.card-p  {background:var(--primary-light); border-color:#BFDBFE;}
+.card-dk {background:var(--g9); border-color:var(--g8); color:var(--white);}
+.card-acc{background:var(--accent-light); border-color:#BAE6FD;}
+
+/* Number circle */
+.ncirc{
+  width:40px; height:40px; min-width:40px; border-radius:50%;
+  background:var(--primary); color:var(--white);
+  font-size:16px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.ncirc-sm{width:28px; height:28px; min-width:28px; font-size:13px;}
+.ncirc-outline{background:transparent; border:2px solid var(--primary); color:var(--primary);}
+
+/* Icon circle — SVG icons inherit color */
+.icon-circ{
+  width:52px; height:52px; min-width:52px; border-radius:50%;
+  background:var(--primary-light);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--primary);
+}
+
+/* Accent bar (left border) */
+.abar{border-left:4px solid var(--primary); padding-left:18px;}
+.abar-acc{border-left-color:var(--accent);}
+.abar-suc{border-left-color:var(--success);}
+
+/* Horizontal rule */
+.hr{width:100%; height:1.5px; background:var(--g3);}
+.hr-p{background:var(--primary-light);}
+
+/* Table */
+.tbl{width:100%; border-collapse:collapse; font-size:15px;}
+.tbl thead th{
+  background:var(--g9); color:var(--white);
+  padding:12px 18px; font-size:13px; font-weight:600;
+  letter-spacing:0.05em; text-align:left;
+}
+.tbl thead th:first-child{border-radius:var(--rsm) 0 0 0;}
+.tbl thead th:last-child {border-radius:0 var(--rsm) 0 0;}
+.tbl tbody td{
+  padding:11px 18px; border-bottom:1px solid var(--g3);
+  color:var(--g8);
+}
+.tbl tbody tr:nth-child(even) td{background:var(--g1);}
+.tbl tbody tr:last-child td{border-bottom:none;}
+
+/* Progress bar — PDF-safe: no animation */
+.pbar{height:8px; background:var(--g3); border-radius:var(--rfull); overflow:hidden;}
+.pbar-fill{height:100%; background:var(--primary); border-radius:var(--rfull);}
+
+/* Timeline */
+.tl-wrap{position:relative;}
+.tl-line{  /* vertical connector */
+  position:absolute; left:6px; top:22px;
+  width:2px; height:calc(100% - 22px);
+  background:var(--g3);
+}
+.tl-dot{
+  width:14px; height:14px; min-width:14px; border-radius:50%;
+  background:var(--primary); margin-top:3px;
+}
+.tl-dot-outline{background:var(--white); border:2px solid var(--primary);}
+
+/* Quote mark — text node, not pseudo → PDF-safe */
+.qmark{
+  font-size:80px; line-height:0.8;
+  color:var(--g3); font-family:Georgia,serif; font-weight:700;
+  user-select:none;
+}
+
+/* Step arrow connector (solid border) */
+.step-arrow{
+  width:32px; height:32px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--g4); font-size:20px;
+}
+
+/* Image placeholder */
+.img-ph{
+  background:var(--g2); border:1.5px dashed var(--g4);
+  border-radius:var(--rsm);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--g5); font-size:14px; font-weight:500;
+  text-align:center;
+}
+.img-ph img{
+  width:100%; height:100%; object-fit:cover;
+  border-radius:var(--rsm);
+}
+
+/* Caption */
+.caption{font-size:13px; color:var(--g5); text-align:center; margin-top:8px;}
+
+/* Two-tone decorative circles (PDF-safe: solid border, no blur) */
+.deco-rings{
+  position:absolute;
+  pointer-events:none;
+}
+
+/* ─── PDF escape hatch ───────────────────────────────────────
+   화면엔 두고 인쇄(PDF)에선 숨길 장식 요소에 class="no-print".
+   mask-image, mesh/grid background-image, glow box-shadow,
+   background-clip:text 그라디언트처럼 PDF에서 깨지는 효과 전용.
+   (deck-stage.js의 인쇄 규칙과 독립적으로 동작) */
+@media print { .no-print { display:none !important; } }
+
+</style>
+</head>
+<body>
+
+<deck-stage width="1280" height="720" style="--deck-rail-w:200px;">
+<!-- ════════════════════════════════════════════════════════
+     01  COVER
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="표지" id="s01" style="background:var(--dark);">
+  <div style="position:absolute;inset:0;padding:var(--safe-top) var(--pad) var(--safe-bottom);display:flex;flex-direction:column;justify-content:center;">
+    <div class="eyebrow" style="color:rgba(255,255,255,.6);margin-bottom:20px;letter-spacing:.14em;">API 설계 · 백엔드 기초</div>
+    <h1 class="t56 fw8 lh11 tight c-white" style="max-width:900px;">명세서를 API로<br>만드는 최소 절차</h1>
+    <div style="width:64px;height:4px;background:var(--accent);border-radius:9999px;margin:26px 0 22px;"></div>
+    <p class="t20 lh14" style="color:rgba(255,255,255,.75);max-width:560px;">
+      명세를 <b style="color:#fff;">계약(contract)</b>으로 번역하고, 계약을 코드로 구현한다.<br>
+      초보자가 건너뛰는 그 "번역" 단계를 중심으로.
+    </p>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     02  전체 흐름 개요
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="전체 흐름" id="s02">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:30px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>큰 그림</div>
+      <h2 class="t36 fw7 tight c-primary">명세와 코드 사이에는 "계약"이 있다</h2>
+    </div>
+
+    <div class="flex f1 minh0 col" style="justify-content:center;gap:34px;">
+      <!-- 3-스테이지 파이프라인 -->
+      <div class="flex ac" style="gap:16px;">
+        <div style="flex:1;border:1.5px solid var(--g3);border-radius:14px;padding:22px 20px;background:#fff;">
+          <div class="t13 wide fw7 c-muted" style="margin-bottom:8px;">INPUT</div>
+          <div class="t22 fw7 c-dark">명세서</div>
+          <div class="t14 c-muted" style="margin-top:6px;">"무엇을 만들지"</div>
+        </div>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <div style="flex:1.15;border-radius:14px;padding:22px 20px;background:var(--primary);box-shadow:0 10px 30px rgba(0,0,0,.12);">
+          <div class="t13 wide fw7" style="color:rgba(255,255,255,.7);margin-bottom:8px;">핵심 산출물</div>
+          <div class="t22 fw8 c-white">계약 (Contract)</div>
+          <div class="t14" style="color:rgba(255,255,255,.85);margin-top:6px;">"뭘 받고 · 뭘 주고 · 언제 실패하나"</div>
+        </div>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <div style="flex:1;border:1.5px solid var(--g3);border-radius:14px;padding:22px 20px;background:#fff;">
+          <div class="t13 wide fw7 c-muted" style="margin-bottom:8px;">OUTPUT</div>
+          <div class="t22 fw7 c-dark">코드</div>
+          <div class="t14 c-muted" style="margin-top:6px;">"계약을 참으로 만들기"</div>
+        </div>
+      </div>
+
+      <!-- 5단계 스트립 -->
+      <div class="flex" style="gap:10px;">
+        <div style="flex:1;padding:14px 12px;border-radius:10px;background:var(--g2);text-align:center;">
+          <div class="t14 fw8 c-primary">1</div><div class="t14 fw6 c-dark" style="margin-top:4px;">리소스·행위</div></div>
+        <div style="flex:1;padding:14px 12px;border-radius:10px;background:var(--g2);text-align:center;">
+          <div class="t14 fw8 c-primary">2</div><div class="t14 fw6 c-dark" style="margin-top:4px;">데이터 모델</div></div>
+        <div style="flex:1;padding:14px 12px;border-radius:10px;background:var(--primary-light);text-align:center;border:1.5px solid var(--primary);">
+          <div class="t14 fw8 c-primary">3</div><div class="t14 fw7 c-primary" style="margin-top:4px;">API 계약 ★</div></div>
+        <div style="flex:1;padding:14px 12px;border-radius:10px;background:var(--g2);text-align:center;">
+          <div class="t14 fw8 c-primary">4</div><div class="t14 fw6 c-dark" style="margin-top:4px;">구현</div></div>
+        <div style="flex:1;padding:14px 12px;border-radius:10px;background:var(--g2);text-align:center;">
+          <div class="t14 fw8 c-primary">5</div><div class="t14 fw6 c-dark" style="margin-top:4px;">테스트</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">02</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     03  핵심 원리 — 바꾸는 비용
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="핵심 원리" id="s03">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:14px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>왜 계약을 먼저?</div>
+      <h2 class="t36 fw7 tight c-primary">이유는 하나 — 바꾸는 비용</h2>
+    </div>
+    <p class="t18 lh16 c-muted" style="max-width:760px;margin-bottom:28px;flex-shrink:0;">
+      계약(문서)에서 고치는 건 <b class="c-dark">공짜</b>지만, 코드와 DB로 다 만든 뒤에 고치는 건 <b class="c-dark">비싸고 위험</b>하다.
+      그래서 명세를 바로 코드로 옮기지 않고, 값싼 단계에서 결정을 끝낸다.
+    </p>
+
+    <div class="flex f1 minh0" style="gap:24px;">
+      <div style="flex:1;border-radius:16px;border:1.5px solid var(--success);background:#F0FDF4;padding:28px;display:flex;flex-direction:column;">
+        <div style="width:44px;height:44px;border-radius:11px;background:#DCFCE7;display:flex;align-items:center;justify-content:center;color:var(--success);margin-bottom:16px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13l2 2 4-4"/></svg>
+        </div>
+        <div class="t22 fw7 c-dark" style="margin-bottom:8px;">계약에서 고치기 = 공짜</div>
+        <div class="t16 lh16 c-muted">문장 한 줄, 필드 하나 바꾸면 끝. 아직 아무것도 만들지 않았으니 되돌릴 게 없다.</div>
+      </div>
+      <div style="flex:1;border-radius:16px;border:1.5px solid var(--danger);background:#FEF2F2;padding:28px;display:flex;flex-direction:column;">
+        <div style="width:44px;height:44px;border-radius:11px;background:#FEE2E2;display:flex;align-items:center;justify-content:center;color:var(--danger);margin-bottom:16px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        </div>
+        <div class="t22 fw7 c-dark" style="margin-bottom:8px;">코드·DB 고치기 = 비쌈</div>
+        <div class="t16 lh16 c-muted">엔드포인트·스키마·마이그레이션·테스트가 다 엮여 있다. 하나 바꾸면 연쇄로 무너진다.</div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">03</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     04  1단계 — 리소스·행위 뽑기
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="1단계 리소스·행위" id="s04">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:24px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>1단계</div>
+      <h2 class="t36 fw7 tight c-primary">리소스와 행위 뽑기</h2>
+    </div>
+
+    <div class="flex f1 minh0" style="gap:30px;">
+      <div style="flex:1.1;display:flex;flex-direction:column;justify-content:center;">
+        <div class="t14 wide fw7 c-muted" style="margin-bottom:12px;">명세를 읽으며 · 명사에 밑줄, 동사에 동그라미</div>
+        <div style="background:var(--dark);border-radius:14px;padding:26px 28px;">
+          <p class="t22 lh14" style="color:#fff;">
+            "사용자는 <u style="text-decoration-color:var(--accent);text-underline-offset:5px;text-decoration-thickness:2px;">할 일</u>을
+            <span style="color:#FDE68A;font-weight:700;">등록</span>하고,
+            <u style="text-decoration-color:var(--accent);text-underline-offset:5px;text-decoration-thickness:2px;">목록</u>을
+            <span style="color:#FDE68A;font-weight:700;">조회</span>하고,
+            <span style="color:#FDE68A;font-weight:700;">완료</span> 표시할 수 있다."
+          </p>
+        </div>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;gap:16px;justify-content:center;">
+        <div class="card" style="padding:20px 22px;background:#fff;">
+          <div class="flex as g12">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+              <div class="t18 fw7 c-dark">명사 → 리소스</div>
+              <div class="t15 lh16 c-muted" style="margin-top:3px;"><b class="c-primary">할 일(Todo)</b> — 저장하고 주고받을 데이터의 정체</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:20px 22px;background:#fff;">
+          <div class="flex as g12">
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+            </div>
+            <div>
+              <div class="t18 fw7 c-dark">동사 → 행위(엔드포인트)</div>
+              <div class="t15 lh16 c-muted" style="margin-top:3px;"><b class="c-primary">등록 · 조회 · 완료표시</b> — 각각이 API 하나. "3개쯤 필요하겠구나"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">04</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     05  2단계 — 데이터 모델
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="2단계 데이터 모델" id="s05">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:24px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>2단계</div>
+      <h2 class="t36 fw7 tight c-primary">데이터 모델 정의</h2>
+    </div>
+
+    <div class="flex f1 minh0 ac" style="gap:34px;">
+      <div style="flex:1;">
+        <div class="t14 wide fw7 c-muted" style="margin-bottom:12px;">리소스의 "모양" — 무엇을 저장하고 돌려줄지</div>
+        <div style="background:var(--dark);border-radius:14px;padding:24px 26px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;line-height:2;color:#E1E9F7;">
+          <div><span style="color:#7DD3FC;">Todo</span> = {</div>
+          <div style="padding-left:22px;"><span style="color:#FDE68A;">id</span>&nbsp; &nbsp; &nbsp; &nbsp;고유번호</div>
+          <div style="padding-left:22px;"><span style="color:#FDE68A;">title</span>&nbsp; &nbsp; &nbsp;할 일 내용</div>
+          <div style="padding-left:22px;"><span style="color:#FDE68A;">completed</span>&nbsp;완료 여부 (true/false)</div>
+          <div style="padding-left:22px;"><span style="color:#FDE68A;">createdAt</span>&nbsp;생성 시각</div>
+          <div>}</div>
+        </div>
+      </div>
+
+      <div style="flex:.85;">
+        <div style="border-left:4px solid var(--primary);padding:8px 0 8px 22px;">
+          <div class="t20 fw7 c-dark" style="margin-bottom:12px;">왜 계약보다 먼저(또는 같이)?</div>
+          <p class="t16 lh16 c-muted">
+            API는 결국 데이터를 주고받는 <b class="c-dark">통로</b>다.<br>
+            그래서 <b class="c-primary">데이터 모양이 안 정해지면 통로(계약) 모양도 못 정한다.</b>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">05</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     06  3단계 — API 계약 (핵심)
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="3단계 API 계약" id="s06">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:18px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>3단계 · 제일 중요</div>
+      <h2 class="t36 fw7 tight c-primary">API 계약 정의</h2>
+    </div>
+
+    <div class="flex f1 minh0" style="gap:26px;">
+      <!-- 4가지 못 박기 -->
+      <div style="flex:.82;display:flex;flex-direction:column;gap:10px;">
+        <div class="t14 wide fw7 c-muted" style="margin-bottom:2px;">각 행위를 4가지로 못 박는다</div>
+        <div style="border-radius:10px;background:var(--g2);padding:13px 16px;"><div class="t16 fw7 c-dark">메서드 + 경로</div><div class="t14 c-muted">어떻게 부를지</div></div>
+        <div style="border-radius:10px;background:var(--g2);padding:13px 16px;"><div class="t16 fw7 c-dark">입력 (요청)</div><div class="t14 c-muted">무엇을 받나 — body·파라미터</div></div>
+        <div style="border-radius:10px;background:var(--g2);padding:13px 16px;"><div class="t16 fw7 c-dark">출력 (성공)</div><div class="t14 c-muted">상태코드 + 돌려주는 모양</div></div>
+        <div style="border-radius:10px;background:#FEF2F2;border:1.5px solid var(--danger);padding:13px 16px;"><div class="t16 fw7 c-danger">실패 (에러) ★</div><div class="t14 c-muted">어떤 상황에서 어떤 에러 — <b class="c-dark">초보자가 놓치는 칸</b></div></div>
+      </div>
+
+      <!-- Todo 예시 -->
+      <div style="flex:1.18;display:flex;flex-direction:column;gap:11px;">
+        <div class="t14 wide fw7 c-muted" style="margin-bottom:2px;">Todo 로 채우면</div>
+        <div class="card" style="padding:15px 18px;background:#fff;gap:6px;">
+          <div class="flex ac g8"><span class="badge" style="background:#DCFCE7;color:#15803D;">POST</span><span class="t15 fw7 c-dark" style="font-family:ui-monospace,Menlo,monospace;">/todos</span></div>
+          <div class="t14 c-muted">입력 <b class="c-dark">{ title }</b> · 성공 <b class="c-success">201</b> { id, title, completed:false } · 실패 <b class="c-danger">400</b> (title 없음)</div>
+        </div>
+        <div class="card" style="padding:15px 18px;background:#fff;gap:6px;">
+          <div class="flex ac g8"><span class="badge" style="background:var(--primary-light);color:var(--primary);">GET</span><span class="t15 fw7 c-dark" style="font-family:ui-monospace,Menlo,monospace;">/todos</span></div>
+          <div class="t14 c-muted">입력 없음 · 성공 <b class="c-success">200</b> [ {…}, {…} ]</div>
+        </div>
+        <div class="card" style="padding:15px 18px;background:#fff;gap:6px;">
+          <div class="flex ac g8"><span class="badge" style="background:#FEF3C7;color:#B45309;">PATCH</span><span class="t15 fw7 c-dark" style="font-family:ui-monospace,Menlo,monospace;">/todos/:id</span></div>
+          <div class="t14 c-muted">입력 <b class="c-dark">{ completed:true }</b> · 성공 <b class="c-success">200</b> { … } · 실패 <b class="c-danger">404</b> (없는 id)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">06</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     07  4단계 — 구현
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="4단계 구현" id="s07">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:8px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>4단계</div>
+      <h2 class="t36 fw7 tight c-primary">구현 — 엔드포인트는 세 겹</h2>
+    </div>
+    <p class="t18 lh16 c-muted" style="max-width:720px;margin-bottom:28px;flex-shrink:0;">
+      코드는 계약을 <b class="c-dark">"참으로 만드는"</b> 작업일 뿐. 엔드포인트 하나를 항상 아래 세 겹으로 짠다.
+    </p>
+
+    <div class="flex f1 minh0" style="gap:20px;">
+      <div style="flex:1;border-radius:16px;background:var(--g2);padding:26px;display:flex;flex-direction:column;">
+        <div class="t44 fw8" style="color:var(--primary);opacity:.35;line-height:1;">01</div>
+        <div class="t20 fw7 c-dark" style="margin:12px 0 8px;">입력 검증</div>
+        <div class="t15 lh16 c-muted">요청이 계약에 맞나? title이 비었으면 여기서 <b class="c-danger">400</b>.</div>
+      </div>
+      <div class="flex ac" style="flex-shrink:0;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div style="flex:1;border-radius:16px;background:var(--g2);padding:26px;display:flex;flex-direction:column;">
+        <div class="t44 fw8" style="color:var(--primary);opacity:.35;line-height:1;">02</div>
+        <div class="t20 fw7 c-dark" style="margin:12px 0 8px;">비즈니스 로직</div>
+        <div class="t15 lh16 c-muted">실제 해야 할 일. "완료로 바꾼다", "새 항목을 만든다".</div>
+      </div>
+      <div class="flex ac" style="flex-shrink:0;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div style="flex:1;border-radius:16px;background:var(--g2);padding:26px;display:flex;flex-direction:column;">
+        <div class="t44 fw8" style="color:var(--primary);opacity:.35;line-height:1;">03</div>
+        <div class="t20 fw7 c-dark" style="margin:12px 0 8px;">데이터 접근</div>
+        <div class="t15 lh16 c-muted">DB에 읽고 쓴다. 그리고 결과를 <b class="c-dark">계약의 응답 모양</b>으로 변환해 반환.</div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">07</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     08  5단계 — 테스트
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="5단계 테스트" id="s08">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:14px;">
+      <div class="eyebrow g8" style="margin-bottom:10px;"><span class="ep"></span>5단계</div>
+      <h2 class="t36 fw7 tight c-primary">테스트 = 계약을 그대로 옮기기</h2>
+    </div>
+    <p class="t18 lh16 c-muted" style="max-width:760px;margin-bottom:26px;flex-shrink:0;">
+      새로 뭘 생각하는 게 아니다. <b class="c-dark">3단계 계약에 적어둔 성공·실패 케이스</b>를 그대로 테스트로 옮기면,
+      계약이 잘 적혀 있는 만큼 테스트 목록이 저절로 나온다.
+    </p>
+
+    <div class="flex f1 minh0" style="gap:24px;">
+      <div style="flex:1;border-radius:16px;border:1.5px solid var(--g3);background:#fff;padding:24px 26px;">
+        <div class="flex ac g8" style="margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span class="t18 fw7 c-dark">성공 케이스</span></div>
+        <div class="flex col g12">
+          <div class="t16 lh16 c-muted"><b class="c-dark">POST /todos</b> 에 title 넣으면 → <b class="c-success">201</b> 과 completed:false</div>
+          <div class="t16 lh16 c-muted"><b class="c-dark">GET /todos</b> → <b class="c-success">200</b> 과 배열</div>
+        </div>
+      </div>
+      <div style="flex:1;border-radius:16px;border:1.5px solid var(--g3);background:#fff;padding:24px 26px;">
+        <div class="flex ac g8" style="margin-bottom:16px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg><span class="t18 fw7 c-dark">실패 케이스</span></div>
+        <div class="flex col g12">
+          <div class="t16 lh16 c-muted">title 없이 보내면 → <b class="c-danger">400</b> 나오나?</div>
+          <div class="t16 lh16 c-muted">없는 id로 PATCH → <b class="c-danger">404</b> 나오나?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_v_blue.png" style="height:26px;display:block;"></div>
+  <div class="pg">08</div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     09  요약
+════════════════════════════════════════════════════════ -->
+<section class="slide" data-label="요약" id="s09" style="background:var(--dark);">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:var(--safe-top) var(--pad) var(--safe-bottom);">
+    <div style="flex-shrink:0;margin-bottom:22px;">
+      <div class="eyebrow" style="color:rgba(255,255,255,.6);margin-bottom:10px;letter-spacing:.14em;">기억 트리거</div>
+      <h2 class="t36 fw7 tight c-white">한 줄로 — 명세를 계약으로 번역하고,<br>계약을 코드로 구현한다</h2>
+    </div>
+
+    <div class="flex f1 minh0 col" style="gap:12px;justify-content:center;">
+      <div class="flex as g12"><span class="t16 fw8" style="color:var(--accent);min-width:74px;">큰 원리</span><span class="t16 lh16" style="color:rgba(255,255,255,.85);">명세→코드 사이에 <b style="color:#fff;">계약</b>을 먼저 세운다 · 이유 = 바꾸는 비용</span></div>
+      <div class="flex as g12"><span class="t16 fw8" style="color:var(--accent);min-width:74px;">1 · 2</span><span class="t16 lh16" style="color:rgba(255,255,255,.85);">명사=데이터 / 동사=엔드포인트 개수 · 데이터 모양이 통로 모양의 전제</span></div>
+      <div class="flex as g12"><span class="t16 fw8" style="color:var(--accent);min-width:74px;">3 (핵심)</span><span class="t16 lh16" style="color:rgba(255,255,255,.85);">메서드+경로 / 입력 / 성공 / <b style="color:#FCA5A5;">실패</b> — 에러 칸을 반드시 여기서 채운다</span></div>
+      <div class="flex as g12"><span class="t16 fw8" style="color:var(--accent);min-width:74px;">4 · 5</span><span class="t16 lh16" style="color:rgba(255,255,255,.85);">구현=검증→로직→데이터접근 3겹 · 테스트=계약의 성공/실패 목록</span></div>
+    </div>
+
+    <div style="flex-shrink:0;border-top:1px solid rgba(255,255,255,.15);padding-top:16px;">
+      <p class="t15" style="color:rgba(255,255,255,.6);">주니어에게는 <b style="color:#fff;">"에러 케이스를 계약 단계에서 못 박는다"</b>를 강조 — 정상 흐름만 짜다가 터지는 사고를 막는다.</p>
+    </div>
+  </div>
+  <div class="logo-wrap"><img src="assets/safeai_h_white.png" style="height:24px;display:block;"></div>
+</section>
+
+</deck-stage>
+
+<script src="deck-stage.js"></script>
+<script src="deck-editor.js"></script>
+<script>
+/* ───────────────────────────────────────────────────────────────
+   Standalone controls (host-less use). deck-stage.js auto-scales the
+   canvas to the viewport, so entering true fullscreen fills the screen.
+     F — toggle browser fullscreen (clean present mode: rail+nav hidden)
+     T — toggle thumbnail rail
+   Arrows / Space / Home / End / number keys / R are handled by deck-stage.
+─────────────────────────────────────────────────────────────── */
+(function () {
+  var railOn = true;
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(function () {});
+      }
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+  function toggleRail() {
+    railOn = !railOn;
+    try { window.postMessage({ type: '__deck_rail_visible', on: railOn }, '*'); } catch (e) {}
+  }
+  function presenting(on) {
+    try { window.postMessage({ __omelette_presenting: on }, '*'); } catch (e) {}
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+    else if (e.key === 't' || e.key === 'T') { e.preventDefault(); toggleRail(); }
+  });
+
+  // Clean presentation: hide rail + nav chrome whenever we're fullscreen.
+  document.addEventListener('fullscreenchange', function () {
+    presenting(!!document.fullscreenElement);
+  });
+
+  // Add F / T hints into deck-stage's floating overlay (next to "Reset R"),
+  // reusing the component's .btn.reset + .kbd styling. deck-stage.js untouched.
+  function hintBtn(label, key, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn reset deck-hint';
+    b.title = label + ' (' + key + ')';
+    b.innerHTML = label + '<span class="kbd">' + key + '</span>';
+    b.addEventListener('click', function (e) { e.preventDefault(); onClick(); });
+    return b;
+  }
+  function injectHints() {
+    var ds = document.querySelector('deck-stage');
+    if (!ds || !ds.shadowRoot) return false;
+    var sr = ds.shadowRoot;
+    // Sharpness fix — deck-stage sets `will-change:transform` on .canvas, which
+    // makes the browser rasterize the 1280×720 layer once at base size and
+    // GPU-upscale that bitmap in fullscreen (scale 1.5–3×) → blurry text/icons.
+    // Overriding to `auto` lets the static fullscreen scale re-rasterize crisp.
+    if (!sr.getElementById('sharp-fix')) {
+      var sf = document.createElement('style');
+      sf.id = 'sharp-fix';
+      sf.textContent = '.canvas{ will-change:auto !important; }';
+      sr.appendChild(sf);
+    }
+    var overlay = sr.querySelector('.overlay');
+    if (!overlay) return false;
+    if (overlay.querySelector('.deck-hint')) return true; // already injected
+    var div = document.createElement('span');
+    div.className = 'divider';
+    overlay.append(div,
+      hintBtn('전체화면', 'F', toggleFullscreen),
+      hintBtn('썸네일', 'T', toggleRail));
+    return true;
+  }
+  // Overlay is built in deck-stage's connectedCallback — retry until ready.
+  var tries = 0;
+  (function tryInject() {
+    if (injectHints() || tries++ > 40) return;
+    setTimeout(tryInject, 50);
+  })();
+})();
+</script>
+</body>
+</html>
