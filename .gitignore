@@ -14,3 +14,8 @@ docs/.bkit-memory.json
 docs/.pdca-status.json
 **/.bkit-memory.json
 **/.pdca-status.json
+
+# Node / Playwright (dev-only test tooling)
+node_modules/
+test-results/
+playwright-report/

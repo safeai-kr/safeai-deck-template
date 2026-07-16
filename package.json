@@ -1,0 +1,26 @@
+{
+  "name": "safeai-deck-template",
+  "version": "1.0.0",
+  "description": "SafeAI deck template + WYSIWYG editor",
+  "main": "deck-editor.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/safeai-kr/safeai-deck-template.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/safeai-kr/safeai-deck-template/issues"
+  },
+  "homepage": "https://github.com/safeai-kr/safeai-deck-template#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}
